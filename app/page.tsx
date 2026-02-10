@@ -16,7 +16,7 @@ export default async function Home() {
       <div className="py-24 md:py-32 lg:py-40 px-4">
         <div className="flex flex-col md:flex-row items-center justify-center gap-10 md:gap-16 max-w-5xl mx-auto">
           {/* Avatar with vintage border */}
-          <div className="relative animate-fade-in">
+          <div className="relative">
             <div className="absolute -inset-3 border border-sepia-300 dark:border-sepia-700 rounded-full" />
             <div className="absolute -inset-1.5 border border-sepia-200 dark:border-sepia-800 rounded-full" />
             <div className="relative h-52 w-52 md:h-72 md:w-72 lg:h-80 lg:w-80 rounded-full overflow-hidden">
@@ -26,6 +26,7 @@ export default async function Home() {
                 fill
                 priority={true}
                 quality={75}
+                sizes="(max-width: 768px) 208px, (max-width: 1024px) 288px, 320px"
                 className="object-cover"
               />
             </div>

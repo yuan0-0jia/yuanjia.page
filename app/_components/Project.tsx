@@ -68,7 +68,7 @@ export default function Project({
       {imageSrc ? (
         <div className="w-full md:w-auto md:max-w-[500px] img-vintage rounded-sm overflow-hidden vintage-border">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img alt={header} src={imageSrc} className="w-full h-auto" />
+          <img alt={header} src={imageSrc} loading="lazy" className="w-full h-auto" />
         </div>
       ) : (
         <div className="w-full md:w-96 h-56 md:h-64 flex items-center justify-center bg-parchment dark:bg-warmGray-800 rounded-sm vintage-border">
