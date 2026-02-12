@@ -21,6 +21,10 @@ const lora = Lora({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://yuanjia.page"),
+  alternates: {
+    canonical: "/",
+  },
   title: { template: "%s - Yuan Jia", default: "Yuan Jia" },
   verification: {
     google: [

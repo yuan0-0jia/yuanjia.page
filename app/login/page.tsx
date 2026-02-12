@@ -2,6 +2,10 @@ import SignInButton from "../_components/SignInButton";
 
 export const metadata = {
   title: "Login",
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 export default function Login() {
