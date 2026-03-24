@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { Suspense } from "react";
 import { getAbout } from "../_lib/data-service";
 import Paragraph from "../_components/Paragraph";
@@ -37,16 +36,8 @@ async function AboutContent() {
           ))}
 
         <Paragraph>
-          When I&apos;m not writing code, I love exploring Santa Cruz with my
-          camera. You can spot me wandering around, capturing moments that catch
-          my eye. Check out some of my photos on the{" "}
-          <Link
-            href="/photos"
-            className="text-sepia-600 dark:text-sepia-400 underline decoration-sepia-400/50 decoration-1 underline-offset-4 hover:decoration-sepia-500 transition-colors"
-          >
-            Photos
-          </Link>{" "}
-          page.
+          When I&apos;m not writing code, I love exploring with my camera. You
+          can spot me wandering around, capturing moments that catch my eye.
         </Paragraph>
       </div>
     </>

@@ -22,45 +22,20 @@ async function PhotosList() {
     );
   }
 
-  // Separate header photo (id=0) from other photos
-  const headerPhoto = photos.find((photo) => photo.id === 0);
-  const otherPhotos = photos
+  const galleryPhotos = photos
     .filter((photo) => photo.id !== 0)
     .sort((cur, next) => cur.id - next.id);
 
   return (
-    <div className="space-y-6">
-      {/* Header Photo Section */}
-      {headerPhoto && (
-        <div className="bg-parchment dark:bg-warmGray-800/50 vintage-border rounded-sm p-8">
-          <h2 className="font-typewriter text-lg text-warmGray-800 dark:text-cream tracking-wide mb-4 text-center">
-            Header Photo
-          </h2>
-          <div className="flex justify-center">
-            <div className="w-full max-w-sm">
-              <PhotoGridItem photo={headerPhoto} />
-            </div>
-          </div>
-          <p className="font-typewriter text-xs text-sepia-500 dark:text-sepia-400 text-center mt-4 tracking-wider">
-            Hover over the image to update
-          </p>
-        </div>
-      )}
-
-      {/* Photo Grid */}
-      <div className="space-y-4">
-        <h2 className="font-typewriter text-lg text-warmGray-800 dark:text-cream tracking-wide text-center">
-          Gallery Photos
-        </h2>
-        <div className="grid grid-cols-3 gap-8">
-          {otherPhotos.map((photo) => (
-            <PhotoGridItem key={photo.id} photo={photo} />
-          ))}
-        </div>
-        <p className="font-typewriter text-xs text-sepia-500 dark:text-sepia-400 text-center tracking-wider">
-          Hover over any image to update
-        </p>
+    <div className="space-y-4">
+      <div className="grid grid-cols-3 gap-8">
+        {galleryPhotos.map((photo) => (
+          <PhotoGridItem key={photo.id} photo={photo} />
+        ))}
       </div>
+      <p className="font-typewriter text-xs text-sepia-500 dark:text-sepia-400 text-center tracking-wider">
+        Hover over any image to update
+      </p>
     </div>
   );
 }

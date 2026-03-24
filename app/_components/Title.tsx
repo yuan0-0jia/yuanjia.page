@@ -10,7 +10,7 @@ export default function Header({
   img: string;
 }) {
   return (
-    <>
+    <div className="w-full">
       <header className="pb-6 text-center">
         <div className="vintage-divider mb-6">
           <span className="text-sepia-400 dark:text-sepia-500">✦</span>
@@ -23,16 +23,17 @@ export default function Header({
         </p>
       </header>
 
-      <div className="relative h-[500px] md:h-[600px] lg:h-[700px] w-full mb-8 vintage-border rounded-sm overflow-hidden">
+      <div className="max-w-xl mx-auto mb-8 vintage-border rounded-md overflow-hidden">
         <Image
           alt={title}
           src={img}
-          fill
+          width={900}
+          height={450}
           sizes="100vw"
-          className="object-cover"
+          className="w-full h-auto"
           priority
         />
       </div>
-    </>
+    </div>
   );
 }

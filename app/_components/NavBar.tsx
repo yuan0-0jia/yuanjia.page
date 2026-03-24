@@ -19,19 +19,11 @@ export default async function Navigation() {
               <ThemeSwitch />
             </li>
             <li>
-              <Link 
-                href="/about" 
+              <Link
+                href="/about"
                 className="text-sepia-600 dark:text-sepia-400 hover:text-sepia-800 dark:hover:text-sepia-300 transition-colors"
               >
                 About
-              </Link>
-            </li>
-            <li>
-              <Link 
-                href="/photos" 
-                className="text-sepia-600 dark:text-sepia-400 hover:text-sepia-800 dark:hover:text-sepia-300 transition-colors"
-              >
-                Photos
               </Link>
             </li>
             <li>
