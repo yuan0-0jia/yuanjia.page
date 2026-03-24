@@ -2,14 +2,15 @@ import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
 import Button from "./_components/Button";
+import FlickrPhotos from "./_components/FlickrPhotos";
 import Projects from "./_components/Projects";
 import Spinner from "./_components/Spinner";
-import { getAvatar, getPhotos } from "./_lib/data-service";
+import { getAvatar, getFlickrPhotos } from "./_lib/data-service";
 
 export const revalidate = 3600;
 
 export default async function Home() {
-  const [avatar, photos] = await Promise.all([getAvatar(), getPhotos()]);
+  const [avatar, flickrPhotos] = await Promise.all([getAvatar(), getFlickrPhotos()]);
 
   return (
     <>
@@ -86,29 +87,11 @@ export default async function Home() {
               Photos
             </h2>
             <p className="font-typewriter text-sm mt-4 text-sepia-500 dark:text-sepia-400 tracking-wider">
-              Moments captured over the years.
+              What I photographed.
             </p>
           </header>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {photos
-              ?.filter((photo) => photo.id !== 0)
-              .sort((cur, next) => cur.id - next.id)
-              .map((photo) => (
-                <div
-                  key={photo.id}
-                  className="relative aspect-[3/2] w-full img-vintage vintage-border rounded-sm overflow-hidden"
-                >
-                  <Image
-                    src={photo.image}
-                    alt=""
-                    fill
-                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                    className="object-cover"
-                  />
-                </div>
-              ))}
-          </div>
+          <FlickrPhotos photos={flickrPhotos} count={6} />
 
           <div className="mt-10 text-center">
             <p className="font-typewriter text-base md:text-lg text-warmGray-700 dark:text-warmGray-200 tracking-wide leading-loose">

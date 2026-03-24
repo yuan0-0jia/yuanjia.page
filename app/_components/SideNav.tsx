@@ -1,6 +1,6 @@
 "use client";
 
-import { FaCircleUser, FaCode, FaList, FaPhotoFilm } from "react-icons/fa6";
+import { FaCircleUser, FaCode, FaList } from "react-icons/fa6";
 import SignOutButton from "./SignOutButton";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -15,11 +15,6 @@ const navLinks = [
     name: "Projects",
     href: "/account/projects",
     icon: <FaCode className="h-5 w-5" />,
-  },
-  {
-    name: "Photos",
-    href: "/account/photos",
-    icon: <FaPhotoFilm className="h-5 w-5" />,
   },
   {
     name: "About",
