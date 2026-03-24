@@ -49,7 +49,21 @@ export default function FlickrPhotos({
     }, 400);
   }, [photos, count, phase]);
 
-  if (selected.length === 0) return null;
+  if (selected.length === 0)
+    return (
+      <p className="text-center font-typewriter text-sm text-sepia-500 dark:text-sepia-400 tracking-wider py-8">
+        Photos are temporarily unavailable. Visit my{" "}
+        <a
+          href="https://www.flickr.com/photos/yuan-jia/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline decoration-sepia-400/50 decoration-1 underline-offset-4 hover:decoration-sepia-500 transition-colors"
+        >
+          Flickr
+        </a>{" "}
+        in the meantime.
+      </p>
+    );
 
   return (
     <div>

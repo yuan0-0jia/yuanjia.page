@@ -7,7 +7,7 @@ import Spinner from "../_components/Spinner";
 export const metadata = {
   title: "About",
   description:
-    "Learn more about Yuan Jia — software engineer and photographer based in Santa Cruz.",
+    "Learn more about Yuan Jia — software engineer and photographer based in south bay.",
 };
 
 export const revalidate = 3600;
@@ -22,6 +22,9 @@ async function AboutContent() {
         sub={"Yuan Jia"}
         img={about?.find((photo) => photo.id === 0).photo}
       />
+      <p className="font-typewriter text-xs text-sepia-400 dark:text-sepia-500 tracking-wider text-center -mt-4 mb-8 italic">
+        shot on Superia X-TRA 400.
+      </p>
 
       <div className="space-y-2">
         {about

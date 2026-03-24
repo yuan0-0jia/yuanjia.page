@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -8,6 +9,19 @@ import Spinner from "./_components/Spinner";
 import { getAvatar, getFlickrPhotos } from "./_lib/data-service";
 
 export const revalidate = 3600;
+
+export async function generateMetadata(): Promise<Metadata> {
+  const avatar = await getAvatar();
+  const avatarUrl = avatar?.find((photo) => photo.id === 1)?.image;
+
+  return {
+    openGraph: avatarUrl
+      ? {
+          images: [{ url: avatarUrl, width: 400, height: 400, alt: "Yuan Jia" }],
+        }
+      : undefined,
+  };
+}
 
 export default async function Home() {
   const [avatar, flickrPhotos] = await Promise.all([getAvatar(), getFlickrPhotos()]);
