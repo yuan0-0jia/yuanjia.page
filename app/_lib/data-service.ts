@@ -34,17 +34,6 @@ export async function getAbout() {
   return data;
 }
 
-export async function getPhotos() {
-  const supabase = await createClient();
-  const { data, error } = await supabase.from("photos").select("*");
-
-  if (error) {
-    throw new Error("photos could not be loaded");
-  }
-
-  return data;
-}
-
 const FLICKR_FEED_URL =
   "https://www.flickr.com/services/feeds/photos_public.gne?id=186722781@N08&format=json&nojsoncallback=1";
 

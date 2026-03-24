@@ -23,7 +23,7 @@ export default async function Page() {
         <div className="font-typewriter text-sm md:text-base tracking-wide">
           <section className="mb-10">
             <p className="text-warmGray-700 dark:text-warmGray-200 leading-loose">
-            hello-yuan-jia.com is committed to protecting your privacy. This
+            yuanjia.page is committed to protecting your privacy. This
             Privacy Policy explains how we collect, use, and share information
             when you use our services and integrate your Google account via
             Google OAuth.
@@ -35,7 +35,7 @@ export default async function Page() {
             1. Information We Collect
           </h2>
             <p className="text-warmGray-700 dark:text-warmGray-200 leading-loose">
-            When you log in to hello-yuan-jia.com using your Google account, we
+            When you log in to yuanjia.page using your Google account, we
             receive the following information, depending on the permissions you
             grant:
           </p>

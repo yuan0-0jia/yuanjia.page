@@ -26,6 +26,17 @@ export const metadata: Metadata = {
     canonical: "/",
   },
   title: { template: "%s - Yuan Jia", default: "Yuan Jia" },
+  description:
+    "Personal site of Yuan Jia — software engineer, photographer, and creative based in Santa Cruz.",
+  openGraph: {
+    title: "Yuan Jia",
+    description:
+      "Personal site of Yuan Jia — software engineer, photographer, and creative based in Santa Cruz.",
+    url: "https://yuanjia.page",
+    siteName: "Yuan Jia",
+    locale: "en_US",
+    type: "website",
+  },
   verification: {
     google: [
       "GLWAOr9Q8E8GyyWHIs-vZDuiYE9Q0bm_vxO2avsFZQI",

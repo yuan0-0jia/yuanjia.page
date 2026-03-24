@@ -25,7 +25,7 @@ export default function Paragraph({
 
       {img && (
         <div className="relative w-44 h-44 md:w-52 md:h-52 flex-shrink-0 img-vintage vintage-border rounded-sm overflow-hidden">
-          <Image alt="" fill className="object-cover" src={img} />
+          <Image alt="About section photo" fill className="object-cover" src={img} />
         </div>
       )}
     </section>

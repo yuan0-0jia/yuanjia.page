@@ -6,6 +6,8 @@ import Spinner from "../_components/Spinner";
 
 export const metadata = {
   title: "About",
+  description:
+    "Learn more about Yuan Jia — software engineer and photographer based in Santa Cruz.",
 };
 
 export const revalidate = 3600;
