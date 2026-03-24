@@ -35,7 +35,7 @@ export async function getAbout() {
 }
 
 const FLICKR_FEED_URL =
-  "https://www.flickr.com/services/feeds/photos_public.gne?id=186722781@N08&format=json&nojsoncallback=1";
+  "https://www.flickr.com/services/feeds/photoset.gne?set=72177720317181217&nsid=186722781@N08&format=json&nojsoncallback=1";
 
 export async function getFlickrPhotos() {
   const res = await fetch(FLICKR_FEED_URL, { next: { revalidate: 3600 } });
