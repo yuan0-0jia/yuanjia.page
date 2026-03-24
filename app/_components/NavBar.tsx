@@ -29,7 +29,7 @@ export default function Navigation() {
       <div className="flex justify-between items-center max-w-7xl mx-auto">
         <Link
           href="/"
-          className="font-typewriter text-lg tracking-wider text-sepia-700 dark:text-sepia-300 hover:text-sepia-500 dark:hover:text-sepia-400 transition-colors"
+          className="font-typewriter text-lg tracking-wider text-sepia-700 dark:text-sepia-400 hover:text-sepia-500 dark:hover:text-sepia-300 transition-colors"
         >
           Yuan Jia
         </Link>
