@@ -1,9 +1,13 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { FaArrowUpRightFromSquare } from "react-icons/fa6";
+import {
+  FaArrowUpRightFromSquare,
+  FaLinkedin,
+  FaGithub,
+  FaEnvelope,
+} from "react-icons/fa6";
 import { Suspense } from "react";
-import Button from "./_components/Button";
 import FlickrPhotos from "./_components/FlickrPhotos";
 import Projects from "./_components/Projects";
 import Spinner from "./_components/Spinner";
@@ -35,35 +39,55 @@ export default async function Home() {
   return (
     <>
       {/* Hero */}
-      <section className="py-24 md:py-32 lg:py-40 px-4">
-        <div className="flex flex-col md:flex-row items-center justify-center gap-10 md:gap-16 max-w-5xl mx-auto">
-          <div className="relative">
-            <div className="absolute -inset-3 border border-sepia-300 dark:border-sepia-700 rounded-full" />
-            <div className="absolute -inset-1.5 border border-sepia-200 dark:border-sepia-800 rounded-full" />
-            <div className="relative h-52 w-52 md:h-72 md:w-72 lg:h-80 lg:w-80 rounded-full overflow-hidden">
+      <section className="py-20 md:py-28 lg:py-36 px-4">
+        <div className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-14 max-w-4xl mx-auto">
+          <div className="relative flex-shrink-0">
+            <div className="absolute -inset-2 border border-sepia-300/60 dark:border-sepia-700/60 rounded-full" />
+            <div className="relative h-44 w-44 md:h-56 md:w-56 lg:h-64 lg:w-64 rounded-full overflow-hidden">
               <Image
                 alt="Yuan"
                 src={avatar?.find((photo) => photo.id === 1).image}
                 fill
                 priority={true}
                 quality={75}
-                sizes="(max-width: 768px) 208px, (max-width: 1024px) 288px, 320px"
+                sizes="(max-width: 768px) 176px, (max-width: 1024px) 224px, 256px"
                 className="object-cover"
               />
             </div>
           </div>
 
           <div className="text-center md:text-left">
-            <h1 className="font-typewriter text-3xl md:text-4xl lg:text-5xl text-warmGray-800 dark:text-cream mb-4 animate-fade-in-up opacity-0 stagger-1">
-              Hi, I&apos;m Yuan
+            <h1 className="font-typewriter text-3xl md:text-4xl lg:text-5xl text-warmGray-800 dark:text-cream mb-3 animate-fade-in-up opacity-0 stagger-1">
+              Yuan Jia
             </h1>
-            <p className="font-typewriter text-base md:text-lg text-sepia-500 dark:text-sepia-400 mb-8 animate-fade-in-up opacity-0 stagger-2 tracking-wider">
-              Thank you for visiting my site!
+            <p className="font-typewriter text-sm md:text-base text-sepia-600 dark:text-sepia-400 mb-6 animate-fade-in-up opacity-0 stagger-2 tracking-wider leading-relaxed">
+              Software engineer &amp; photographer
             </p>
-            <div className="animate-fade-in-up opacity-0 stagger-3">
-              <Button type="primary" to="/about">
-                About me
-              </Button>
+            <div className="flex items-center gap-5 justify-center md:justify-start animate-fade-in-up opacity-0 stagger-3">
+              <Link
+                href="/about"
+                className="font-typewriter text-sm tracking-wider text-sepia-600 dark:text-sepia-400 underline decoration-sepia-500/50 decoration-1 underline-offset-4 hover:decoration-sepia-500 dark:hover:decoration-sepia-400 transition-colors"
+              >
+                More about me
+              </Link>
+              <span className="text-sepia-300 dark:text-sepia-700">|</span>
+              <ul className="flex items-center gap-5">
+                <li>
+                  <a href="https://www.linkedin.com/in/yuanjia1/" target="_blank" rel="noopener noreferrer" className="text-sepia-500 dark:text-sepia-400 hover:text-sepia-700 dark:hover:text-sepia-300 transition-colors">
+                    <FaLinkedin className="w-4 h-4" />
+                  </a>
+                </li>
+                <li>
+                  <a href="https://github.com/yuan0-0jia" target="_blank" rel="noopener noreferrer" className="text-sepia-500 dark:text-sepia-400 hover:text-sepia-700 dark:hover:text-sepia-300 transition-colors">
+                    <FaGithub className="w-4 h-4" />
+                  </a>
+                </li>
+                <li>
+                  <a href="mailto:hello.yuanjia@gmail.com" className="text-sepia-500 dark:text-sepia-400 hover:text-sepia-700 dark:hover:text-sepia-300 transition-colors">
+                    <FaEnvelope className="w-4 h-4" />
+                  </a>
+                </li>
+              </ul>
             </div>
           </div>
         </div>
@@ -79,8 +103,8 @@ export default async function Home() {
             <h2 className="font-typewriter text-2xl md:text-3xl text-cream tracking-wide">
               Projects
             </h2>
-            <p className="font-typewriter text-sm mt-4 text-sepia-300 tracking-wider">
-              Here are some projects I did over the years.
+            <p className="font-typewriter text-sm mt-4 text-sepia-200 dark:text-sepia-400 tracking-wider">
+              A few things I&apos;ve built.
             </p>
           </header>
         </div>

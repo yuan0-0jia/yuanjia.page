@@ -2,8 +2,17 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-function shuffleAndPick<T>(arr: T[], count: number): T[] {
-  const shuffled = [...arr].sort(() => Math.random() - 0.5);
+function shuffleAndPickExcluding<T extends { src: string }>(
+  arr: T[],
+  count: number,
+  exclude: T[],
+): T[] {
+  const excludeSrcs = new Set(exclude.map((item) => item.src));
+  const remaining = arr.filter((item) => !excludeSrcs.has(item.src));
+
+  // If not enough remaining, fall back to full shuffle
+  const pool = remaining.length >= count ? remaining : arr;
+  const shuffled = [...pool].sort(() => Math.random() - 0.5);
   return shuffled.slice(0, count);
 }
 
@@ -20,7 +29,7 @@ export default function FlickrPhotos({
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    setSelected(shuffleAndPick(photos, count));
+    setSelected(shuffleAndPickExcluding(photos, count, []));
   }, [photos, count]);
 
   useEffect(() => {
@@ -32,22 +41,34 @@ export default function FlickrPhotos({
   const handleShuffle = useCallback(() => {
     if (phase !== "idle") return;
 
-    // Phase 1: cards scatter
     setPhase("scatter");
 
-    timeoutRef.current = setTimeout(() => {
-      // Swap photos while scattered
-      setSelected(shuffleAndPick(photos, count));
-      setShuffleKey((k) => k + 1);
+    // Pick next photos and start preloading immediately
+    const next = shuffleAndPickExcluding(photos, count, selected);
+    const preloaded = Promise.all(
+      next.map(
+        (photo) =>
+          new Promise<void>((resolve) => {
+            const img = new window.Image();
+            img.onload = () => resolve();
+            img.onerror = () => resolve();
+            img.src = photo.src;
+          }),
+      ),
+    );
 
-      // Phase 2: deal new cards in
+    // Wait for both scatter animation and preload to finish
+    const scatterDone = new Promise((r) => setTimeout(r, 600));
+    Promise.all([scatterDone, preloaded]).then(() => {
+      setSelected(next);
+      setShuffleKey((k) => k + 1);
       setPhase("deal");
 
       timeoutRef.current = setTimeout(() => {
         setPhase("idle");
-      }, 600);
-    }, 400);
-  }, [photos, count, phase]);
+      }, 1200);
+    });
+  }, [photos, count, phase, selected]);
 
   if (selected.length === 0)
     return (
@@ -77,17 +98,19 @@ export default function FlickrPhotos({
             className="relative aspect-[3/2] w-full img-vintage vintage-border rounded-sm overflow-hidden block"
             style={{
               transitionProperty: "transform, opacity",
-              transitionDuration: "0.4s",
-              transitionTimingFunction: phase === "scatter" ? "ease-in" : "ease-out",
-              transitionDelay: phase === "deal" ? `${i * 0.08}s` : "0s",
+              transitionDuration: "0.5s",
+              transitionTimingFunction: phase === "scatter"
+                ? "cubic-bezier(0.4, 0, 0.8, 0.4)"
+                : "cubic-bezier(0.2, 0.6, 0.4, 1)",
+              transitionDelay: phase === "scatter" ? `${i * 0.04}s` : "0s",
               ...(phase === "scatter"
                 ? {
-                    transform: `scale(0.8) rotate(${(i % 2 === 0 ? 1 : -1) * (8 + i * 3)}deg) translateY(${(i % 2 === 0 ? -1 : 1) * 40}px)`,
+                    transform: `scale(0.9) rotate(${(i % 2 === 0 ? 1 : -1) * (4 + i * 2)}deg) translateY(${(i % 2 === 0 ? -1 : 1) * 30}px)`,
                     opacity: 0,
                   }
                 : phase === "deal"
                 ? {
-                    animation: `deal-in 0.4s ease-out ${i * 0.08}s both`,
+                    animation: `deal-in 0.6s cubic-bezier(0.2, 0.6, 0.4, 1) ${i * 0.1}s both`,
                   }
                 : {}),
             }}
@@ -108,7 +131,17 @@ export default function FlickrPhotos({
           disabled={phase !== "idle"}
           className="font-typewriter text-sm tracking-wider text-sepia-600 dark:text-sepia-400 hover:text-sepia-800 dark:hover:text-sepia-300 transition-colors disabled:opacity-50"
         >
-          ↻ Shuffle
+          <span
+            className="inline-block"
+            style={
+              phase !== "idle"
+                ? { transform: "rotate(360deg)", transition: "transform 1s ease" }
+                : { transition: "none" }
+            }
+          >
+            ↻
+          </span>{" "}
+          Shuffle
         </button>
       </div>
     </div>
