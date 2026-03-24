@@ -166,7 +166,7 @@ export default async function Page() {
         <div className="flex justify-between items-center">
           <div className="text-center flex-1">
             <div className="vintage-divider mb-6">
-              <span className="text-sepia-400 dark:text-sepia-500">✦</span>
+              <span className="text-sepia-500 dark:text-sepia-400">✦</span>
             </div>
             <h1 className="font-typewriter text-2xl md:text-3xl text-warmGray-800 dark:text-cream tracking-wide mb-2">
               Projects Management

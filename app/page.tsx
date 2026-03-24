@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { FaArrowUpRightFromSquare } from "react-icons/fa6";
 import { Suspense } from "react";
 import Button from "./_components/Button";
 import FlickrPhotos from "./_components/FlickrPhotos";
@@ -17,14 +18,19 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     openGraph: avatarUrl
       ? {
-          images: [{ url: avatarUrl, width: 400, height: 400, alt: "Yuan Jia" }],
+          images: [
+            { url: avatarUrl, width: 400, height: 400, alt: "Yuan Jia" },
+          ],
         }
       : undefined,
   };
 }
 
 export default async function Home() {
-  const [avatar, flickrPhotos] = await Promise.all([getAvatar(), getFlickrPhotos()]);
+  const [avatar, flickrPhotos] = await Promise.all([
+    getAvatar(),
+    getFlickrPhotos(),
+  ]);
 
   return (
     <>
@@ -64,16 +70,16 @@ export default async function Home() {
       </section>
 
       {/* Projects */}
-      <section className="bg-parchment dark:bg-warmGray-800/50 px-4 py-16 md:py-24 tracking-wide">
+      <section className="bg-sepia-800 dark:bg-sepia-900 px-4 py-20 md:py-28 lg:py-36 tracking-wide">
         <div className="text-center max-w-4xl mx-auto">
           <header className="mb-12">
             <div className="vintage-divider mb-8">
-              <span className="text-sepia-400 dark:text-sepia-500">✦</span>
+              <span className="text-sepia-500">✦</span>
             </div>
-            <h2 className="font-typewriter text-2xl md:text-3xl text-warmGray-800 dark:text-cream tracking-wide">
+            <h2 className="font-typewriter text-2xl md:text-3xl text-cream tracking-wide">
               Projects
             </h2>
-            <p className="font-typewriter text-sm mt-4 text-sepia-500 dark:text-sepia-400 tracking-wider">
+            <p className="font-typewriter text-sm mt-4 text-sepia-300 tracking-wider">
               Here are some projects I did over the years.
             </p>
           </header>
@@ -91,11 +97,11 @@ export default async function Home() {
       </section>
 
       {/* Photos */}
-      <section className="px-4 py-16 md:py-24 tracking-wide">
+      <section className="px-4 py-20 md:py-28 lg:py-36 tracking-wide">
         <div className="max-w-7xl w-full mx-auto">
           <header className="mb-10 text-center">
             <div className="vintage-divider mb-8">
-              <span className="text-sepia-400 dark:text-sepia-500">✦</span>
+              <span className="text-sepia-500 dark:text-sepia-400">✦</span>
             </div>
             <h2 className="font-typewriter text-2xl md:text-3xl text-warmGray-800 dark:text-cream tracking-wide">
               Photos
@@ -112,9 +118,12 @@ export default async function Home() {
               More on{" "}
               <Link
                 href="https://www.flickr.com/photos/yuan-jia/"
-                className="text-sepia-600 dark:text-sepia-400 underline decoration-sepia-400/50 decoration-1 underline-offset-4 hover:decoration-sepia-500 transition-colors"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-sepia-600 dark:text-sepia-400 underline decoration-sepia-500/50 decoration-1 underline-offset-4 hover:decoration-sepia-500 transition-colors"
               >
                 Flickr
+                <FaArrowUpRightFromSquare className="w-3 h-3" />
               </Link>
             </p>
           </div>

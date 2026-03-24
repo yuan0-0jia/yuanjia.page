@@ -62,7 +62,7 @@ async function AboutForm() {
                 Paragraph {section.id}
               </h2>
             </div>
-            <span className="font-typewriter text-xs text-sepia-400 dark:text-sepia-500 bg-sepia-100 dark:bg-sepia-900/50 px-2 py-1 border border-sepia-200 dark:border-sepia-700">
+            <span className="font-typewriter text-xs text-sepia-500 dark:text-sepia-400 bg-sepia-100 dark:bg-sepia-900/50 px-2 py-1 border border-sepia-200 dark:border-sepia-700">
               ID: {section.id}
             </span>
           </div>
@@ -131,7 +131,7 @@ export default async function Page() {
         <div className="flex justify-between items-center">
           <div className="text-center flex-1">
             <div className="vintage-divider mb-6">
-              <span className="text-sepia-400 dark:text-sepia-500">✦</span>
+              <span className="text-sepia-500 dark:text-sepia-400">✦</span>
             </div>
             <h1 className="font-typewriter text-2xl md:text-3xl text-warmGray-800 dark:text-cream tracking-wide mb-2">
               About Section Management

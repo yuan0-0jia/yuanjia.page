@@ -13,50 +13,33 @@ const config: Config = {
         serif: ["var(--font-serif)", "Georgia", "serif"],
       },
       colors: {
-        // Warm vintage palette
-        cream: "#faf6f1",
-        parchment: "#f5efe6",
+        // Warm amber palette
+        // Core: #FFA401, #CC9329, #99793D, #66583D, #332F29
+        cream: "#fdf9f2",
+        parchment: "#f5efe3",
         sepia: {
-          50: "#fdfcfb",
-          100: "#f9f5f0",
-          200: "#f0e6d8",
-          300: "#e2d0b8",
-          400: "#c9a97a",
-          500: "#a67c52",
-          600: "#8b5e34",
-          700: "#6d4a2a",
-          800: "#4a3520",
-          900: "#2d2118",
+          50: "#fefcf6",
+          100: "#faf5e6",
+          200: "#f2e5c8",
+          300: "#e5cc8e",
+          400: "#FFA401",  // bright amber
+          500: "#CC9329",  // warm gold
+          600: "#99793D",  // bronze
+          700: "#66583D",  // dark bronze
+          800: "#4a4133",  // deep brown
+          900: "#332F29",  // charcoal
         },
         warmGray: {
-          50: "#faf9f7",
-          100: "#f3f1ed",
-          200: "#e8e4dd",
-          300: "#d4cec3",
-          400: "#a9a296",
-          500: "#7a7267",
-          600: "#5c554c",
-          700: "#45403a",
-          800: "#2e2a26",
-          900: "#1a1816",
-        },
-        rust: {
-          400: "#c67a52",
-          500: "#a65d38",
-          600: "#8b4a2a",
-        },
-        slate: {
-          50: "#f8fafc",
-          100: "#f1f5f9",
-          200: "#e2e8f0",
-          300: "#cbd5e1",
-          400: "#94a3b8",
-          500: "#64748b",
-          600: "#475569",
-          700: "#334155",
-          800: "#1e293b",
-          900: "#0f172a",
-          950: "#020617",
+          50: "#faf9f6",
+          100: "#f3f1ec",
+          200: "#e7e4dc",
+          300: "#d2cec4",
+          400: "#a8a396",
+          500: "#7d776b",
+          600: "#66583D",
+          700: "#4a4133",
+          800: "#332F29",
+          900: "#1e1c18",
         },
       },
       animation: {

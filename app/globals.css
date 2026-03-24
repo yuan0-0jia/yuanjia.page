@@ -3,29 +3,29 @@
 @tailwind utilities;
 
 :root {
-  --background: #faf6f1;
-  --foreground: #2e2a26;
-  --accent: #a67c52;
+  --background: #fdf9f2;
+  --foreground: #332F29;
+  --accent: #CC9329;
   --transition-base: 0.3s ease;
 
-  /* Sepia palette for CSS usage */
-  --sepia-100: #f9f5f0;
-  --sepia-200: #f0e6d8;
-  --sepia-300: #e2d0b8;
-  --sepia-400: #c9a97a;
-  --sepia-500: #a67c52;
-  --sepia-600: #8b5e34;
-  --sepia-700: #6d4a2a;
-  --sepia-800: #4a3520;
-  --sepia-900: #2d2118;
-  --cream: #faf6f1;
-  --warmGray-800: #2e2a26;
+  /* Amber palette for CSS usage */
+  --sepia-100: #faf5e6;
+  --sepia-200: #f2e5c8;
+  --sepia-300: #e5cc8e;
+  --sepia-400: #FFA401;
+  --sepia-500: #CC9329;
+  --sepia-600: #99793D;
+  --sepia-700: #66583D;
+  --sepia-800: #4a4133;
+  --sepia-900: #332F29;
+  --cream: #fdf9f2;
+  --warmGray-800: #332F29;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #1a1816;
-    --foreground: #faf6f1;
+    --background: #1e1c18;
+    --foreground: #fdf9f2;
   }
 }
 
@@ -33,7 +33,7 @@ html {
   overflow-y: scroll;
   scroll-behavior: smooth;
   scrollbar-width: thin;
-  scrollbar-color: var(--sepia-400) var(--cream);
+  scrollbar-color: var(--sepia-500) var(--cream);
 }
 
 html.dark {
@@ -71,6 +71,11 @@ body {
 html.dark ::selection {
   background-color: var(--sepia-700);
   color: var(--cream);
+}
+
+/* Balanced text wrapping for headings */
+h1, h2, h3 {
+  text-wrap: balance;
 }
 
 /* Focus visible for accessibility */

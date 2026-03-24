@@ -22,7 +22,7 @@ async function AboutContent() {
         sub={"Yuan Jia"}
         img={about?.find((photo) => photo.id === 0).photo}
       />
-      <p className="font-typewriter text-xs text-sepia-400 dark:text-sepia-500 tracking-wider text-center -mt-4 mb-8 italic">
+      <p className="font-typewriter text-xs text-sepia-500 dark:text-sepia-400 tracking-wider text-center -mt-4 mb-8 italic">
         shot on Superia X-TRA 400.
       </p>
 

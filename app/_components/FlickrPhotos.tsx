@@ -57,7 +57,7 @@ export default function FlickrPhotos({
           href="https://www.flickr.com/photos/yuan-jia/"
           target="_blank"
           rel="noopener noreferrer"
-          className="underline decoration-sepia-400/50 decoration-1 underline-offset-4 hover:decoration-sepia-500 transition-colors"
+          className="underline decoration-sepia-500/50 decoration-1 underline-offset-4 hover:decoration-sepia-500 transition-colors"
         >
           Flickr
         </a>{" "}

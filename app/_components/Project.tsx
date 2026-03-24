@@ -46,33 +46,33 @@ export default function Project({
     <section
       className={`flex flex-col ${
         reverse ? "md:flex-row-reverse" : "md:flex-row"
-      } my-8 md:my-12 justify-center items-center gap-6 md:gap-10 lg:gap-14 max-w-6xl mx-auto px-4 md:px-12 card-hover p-6 md:p-8 bg-cream/50 dark:bg-warmGray-800/30 vintage-border rounded-sm`}
+      } my-8 md:my-12 justify-center items-center gap-6 md:gap-10 lg:gap-14 max-w-6xl mx-auto px-4 md:px-12 card-hover p-6 md:p-8 bg-sepia-700/40 dark:bg-sepia-800/50 border border-sepia-600/30 dark:border-sepia-700/30 rounded-sm`}
     >
       {/* Content */}
       <div className="max-w-md text-center md:text-left">
         <header className="relative">
-          <div className="w-12 h-px bg-sepia-300 dark:bg-sepia-600 mb-4 mx-auto md:mx-0" />
-          <h3 className="font-typewriter text-xl md:text-2xl text-warmGray-800 dark:text-cream tracking-wide">
+          <div className="w-12 h-px bg-sepia-500 mb-4 mx-auto md:mx-0" />
+          <h3 className="font-typewriter text-xl md:text-2xl text-cream tracking-wide">
             {header}
           </h3>
         </header>
-        <p className="mt-4 mb-6 font-typewriter text-sm md:text-base text-warmGray-700 dark:text-warmGray-200 leading-loose tracking-wide">
+        <p className="mt-4 mb-6 font-typewriter text-sm md:text-base text-sepia-200 leading-loose tracking-wide">
           {desc}
         </p>
-        <Button type="secondary" to={to}>
+        <Button type="secondary" to={to} external={isExternalUrl(to)}>
           {button}
         </Button>
       </div>
 
       {/* Image with vintage styling - natural size, no cropping */}
       {imageSrc ? (
-        <div className="w-full md:w-auto md:max-w-[500px] img-vintage rounded-sm overflow-hidden vintage-border">
+        <div className="w-full md:w-auto md:max-w-[500px] img-vintage rounded-sm overflow-hidden border border-sepia-600/30">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img alt={header} src={imageSrc} loading="lazy" className="w-full h-auto" />
         </div>
       ) : (
-        <div className="w-full md:w-96 h-56 md:h-64 flex items-center justify-center bg-parchment dark:bg-warmGray-800 rounded-sm vintage-border">
-          <span className="font-typewriter text-warmGray-400 dark:text-warmGray-500">
+        <div className="w-full md:w-96 h-56 md:h-64 flex items-center justify-center bg-sepia-700/30 rounded-sm border border-sepia-600/30">
+          <span className="font-typewriter text-sepia-500">
             No image available
           </span>
         </div>

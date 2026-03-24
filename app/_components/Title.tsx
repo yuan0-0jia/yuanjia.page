@@ -13,7 +13,7 @@ export default function Header({
     <div className="w-full">
       <header className="pb-6 text-center">
         <div className="vintage-divider mb-6">
-          <span className="text-sepia-400 dark:text-sepia-500">✦</span>
+          <span className="text-sepia-500 dark:text-sepia-400">✦</span>
         </div>
         <h1 className="font-typewriter text-3xl md:text-4xl lg:text-5xl text-warmGray-800 dark:text-cream tracking-wide">
           {title}

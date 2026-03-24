@@ -1,7 +1,8 @@
 import Link from "next/link";
+import { FaArrowUpRightFromSquare } from "react-icons/fa6";
 
 const baseStyles =
-  "inline-block font-typewriter text-sm tracking-wider transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-sepia-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex items-center gap-2 font-typewriter text-sm tracking-wider transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-sepia-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
 
 const styles = {
   primary:
@@ -12,10 +13,10 @@ const styles = {
     " px-3 py-1.5 md:px-4 md:py-2 text-xs bg-sepia-600 text-cream border border-sepia-700 hover:bg-sepia-700",
   secondary:
     baseStyles +
-    " px-5 py-2.5 md:px-6 md:py-3 bg-transparent border-2 border-sepia-400 text-sepia-600 dark:text-sepia-300 dark:border-sepia-500 hover:bg-sepia-50 dark:hover:bg-sepia-900/30 hover:-translate-y-0.5 active:translate-y-0",
+    " px-5 py-2.5 md:px-6 md:py-3 bg-transparent border-2 border-sepia-500 text-sepia-300 hover:bg-sepia-700/30 hover:-translate-y-0.5 active:translate-y-0",
   round:
     baseStyles +
-    " px-4 py-2 md:px-5 md:py-2.5 text-sm bg-transparent border border-sepia-400 text-sepia-600 dark:text-sepia-300 dark:border-sepia-500 hover:bg-sepia-50 dark:hover:bg-sepia-900/30",
+    " px-4 py-2 md:px-5 md:py-2.5 text-sm bg-transparent border border-sepia-500 text-sepia-600 dark:text-sepia-300 dark:border-sepia-400 hover:bg-sepia-50 dark:hover:bg-sepia-900/30",
 };
 
 export default function Button({
@@ -23,31 +24,44 @@ export default function Button({
   disabled,
   to,
   type,
+  external,
   onClick,
 }: {
   children: string;
   disabled?: boolean;
   type: keyof typeof styles;
   to?: string;
+  external?: boolean;
   onClick?: React.MouseEventHandler<HTMLButtonElement>;
 }) {
+  const content = (
+    <>
+      {children}
+      {external && <FaArrowUpRightFromSquare className="w-3 h-3" />}
+    </>
+  );
+
   if (to)
     return (
-      <Link className={styles[type]} href={to}>
-        {children}
+      <Link
+        className={styles[type]}
+        href={to}
+        {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+      >
+        {content}
       </Link>
     );
 
   if (onClick)
     return (
       <button onClick={onClick} disabled={disabled} className={styles[type]}>
-        {children}
+        {content}
       </button>
     );
 
   return (
     <button disabled={disabled} className={styles[type]}>
-      {children}
+      {content}
     </button>
   );
 }
