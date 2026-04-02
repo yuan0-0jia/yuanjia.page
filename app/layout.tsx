@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import { Special_Elite, Lora } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import ConditionalFooter from "./_components/ConditionalFooter";
@@ -51,7 +52,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${specialElite.variable} ${lora.variable}`}>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${specialElite.variable} ${lora.variable}`}
+    >
       <head>
         <link
           rel="preconnect"
@@ -71,6 +76,7 @@ export default function RootLayout({
           <ConditionalFooter />
         </ThemeProviders>
         <SpeedInsights />
+        <Analytics />
       </body>
     </html>
   );
