@@ -2,8 +2,6 @@ import { redirect } from "next/navigation";
 import { getUser, updateProject } from "../../_lib/auth-action";
 import SubmitButton from "../../_components/SubmitButton";
 import { getProjects } from "../../_lib/data-service";
-import { Suspense } from "react";
-import Spinner from "../../_components/Spinner";
 import AddProjectModal from "../../_components/AddProjectModal";
 import DeleteProjectButton from "../../_components/DeleteProjectButton";
 import ProjectImageInput from "../../_components/ProjectImageInput";
@@ -178,15 +176,7 @@ export default async function Page() {
           <AddProjectModal />
         </div>
 
-        <Suspense
-          fallback={
-            <div className="flex justify-center py-8">
-              <Spinner />
-            </div>
-          }
-        >
-          <ProjectsList />
-        </Suspense>
+        <ProjectsList />
       </div>
     </div>
   );

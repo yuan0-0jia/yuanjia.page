@@ -7,10 +7,8 @@ import {
   FaGithub,
   FaEnvelope,
 } from "react-icons/fa6";
-import { Suspense } from "react";
 import FlickrPhotos from "./_components/FlickrPhotos";
 import Projects from "./_components/Projects";
-import Spinner from "./_components/Spinner";
 import { getAvatar, getFlickrPhotos } from "./_lib/data-service";
 
 export const revalidate = 3600;
@@ -109,15 +107,7 @@ export default async function Home() {
           </header>
         </div>
 
-        <Suspense
-          fallback={
-            <div className="py-10">
-              <Spinner />
-            </div>
-          }
-        >
-          <Projects />
-        </Suspense>
+        <Projects />
       </section>
 
       {/* Photos */}

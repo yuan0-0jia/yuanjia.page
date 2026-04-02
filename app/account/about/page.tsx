@@ -2,8 +2,6 @@ import { redirect } from "next/navigation";
 import { getUser, updateAbout } from "../../_lib/auth-action";
 import SubmitButton from "../../_components/SubmitButton";
 import { getAbout } from "../../_lib/data-service";
-import { Suspense } from "react";
-import Spinner from "../../_components/Spinner";
 import AddParagraphModal from "../../_components/AddParagraphModal";
 import DeleteParagraphButton from "../../_components/DeleteParagraphButton";
 import AboutImageItem from "../../_components/AboutImageItem";
@@ -143,15 +141,7 @@ export default async function Page() {
           <AddParagraphModal />
         </div>
 
-        <Suspense
-          fallback={
-            <div className="flex justify-center py-8">
-              <Spinner />
-            </div>
-          }
-        >
-          <AboutForm />
-        </Suspense>
+        <AboutForm />
       </div>
     </div>
   );

@@ -1,8 +1,6 @@
-import { Suspense } from "react";
 import { getAbout } from "../_lib/data-service";
 import Paragraph from "../_components/Paragraph";
 import Title from "../_components/Title";
-import Spinner from "../_components/Spinner";
 
 export const metadata = {
   title: "About",
@@ -53,15 +51,7 @@ export default function Page() {
   return (
     <div className="mx-4 md:mx-12 lg:mx-20 my-12 md:my-20 flex flex-col items-center justify-center p-4 tracking-wide">
       <div className="flex max-w-5xl w-full flex-col items-center justify-center">
-        <Suspense
-          fallback={
-            <div className="py-20">
-              <Spinner />
-            </div>
-          }
-        >
-          <AboutContent />
-        </Suspense>
+        <AboutContent />
       </div>
     </div>
   );
