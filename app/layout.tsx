@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import { Special_Elite, Lora } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
-import ConditionalFooter from "./_components/ConditionalFooter";
+import { Suspense } from "react";
+import AuthErrorToast from "./_components/AuthErrorToast";
+import AuthProvider from "./_components/AuthProvider";
+import { Footer } from "./_components/Footer";
 import NavBar from "./_components/NavBar";
 import { ThemeProviders } from "./_components/ThemeProvider";
 import "./globals.css";
@@ -71,9 +74,14 @@ export default function RootLayout({
         className={`antialiased flex flex-col relative min-h-screen bg-cream dark:bg-warmGray-900 text-warmGray-800 dark:text-cream transition-colors font-serif`}
       >
         <ThemeProviders>
-          <NavBar />
-          {children}
-          <ConditionalFooter />
+          <AuthProvider>
+            <Suspense>
+              <AuthErrorToast />
+            </Suspense>
+            <NavBar />
+            {children}
+            <Footer />
+          </AuthProvider>
         </ThemeProviders>
         <SpeedInsights />
         <Analytics />

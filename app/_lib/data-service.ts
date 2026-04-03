@@ -22,16 +22,20 @@ export async function getProjects() {
   return data;
 }
 
-export async function getAbout() {
+export async function getAboutContent() {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("about").select("*");
+  const { data, error } = await supabase
+    .from("about")
+    .select("content_json")
+    .eq("id", 0)
+    .single();
 
   if (error) {
     console.error(error);
-    throw new Error("About could not be loaded");
+    return null;
   }
 
-  return data;
+  return data?.content_json;
 }
 
 const FLICKR_FEED_URL =

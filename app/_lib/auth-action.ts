@@ -15,7 +15,7 @@ export async function login() {
         access_type: "offline",
         prompt: "consent",
       },
-      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/api/auth/callback?next=/account`,
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/api/auth/callback?next=/`,
     },
   });
 
@@ -165,9 +165,7 @@ export async function updateProject(formData: FormData) {
     throw new Error("Project could not be updated");
   }
 
-  revalidatePath("/account/projects", "page");
   revalidatePath("/", "layout");
-  redirect("/account/projects");
 }
 
 export async function createProject(formData: FormData) {
@@ -265,164 +263,49 @@ export async function deleteProject(formData: FormData) {
   revalidatePath("/", "layout");
 }
 
-export async function updateAbout(formData: FormData) {
+export async function updateAboutContent(contentJson: unknown) {
   const { data, error } = await getUser();
   if (error || !data?.user) throw new Error("You must be logged in");
 
-  const id = formData.get("id") as string;
-  const desc = formData.get("desc") as string;
-  const photo = formData.get("photo") as File | null;
-
-  if (!id || !desc) {
-    throw new Error("Required fields are missing");
-  }
-
   const supabase = await createClient();
 
-  let imagePath = formData.get("currentImage") as string | null;
-
-  // Handle image upload if a new image is provided and has content
-  if (photo instanceof File && photo.size > 0) {
-    const imageName = photo.name.replaceAll("/", "");
-    const newImagePath = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/photos/${imageName}`;
-    const hasImagePath = newImagePath.startsWith(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!
-    );
-
-    // Upload the new image
-    const { error: storageError } = await supabase.storage
-      .from("photos")
-      .upload(imageName, photo, { upsert: true });
-
-    if (storageError) {
-      console.error(storageError);
-      throw new Error("About image could not be uploaded");
-    }
-
-    imagePath = hasImagePath ? newImagePath : imageName;
-  }
-
-  // Update the about section
-  const { error: updateError } = await supabase
+  // Upsert the content JSON into the about table (id=0 row)
+  const { error: upsertError } = await supabase
     .from("about")
-    .update({
-      desc,
-      photo: imagePath,
-    })
-    .eq("id", id);
+    .update({ content_json: contentJson })
+    .eq("id", 0);
 
-  if (updateError) {
-    console.error(updateError);
-    throw new Error("About section could not be updated");
+  if (upsertError) {
+    console.error(upsertError);
+    throw new Error("About content could not be updated");
   }
 
+  revalidatePath("/about");
   revalidatePath("/", "layout");
 }
 
-export async function createParagraph(formData: FormData) {
+export async function uploadAboutImage(formData: FormData): Promise<string> {
   const { data, error } = await getUser();
   if (error || !data?.user) throw new Error("You must be logged in");
 
-  const desc = formData.get("desc") as string;
-  const photo = formData.get("photo") as File | null;
-
-  if (!desc) {
-    throw new Error("Description is required");
+  const file = formData.get("file") as File;
+  if (!(file instanceof File) || file.size === 0) {
+    throw new Error("File is required");
   }
 
   const supabase = await createClient();
 
-  // Get the maximum existing ID to assign the next sequential ID
-  const { data: existingParagraphs, error: fetchError } = await supabase
-    .from("about")
-    .select("id")
-    .order("id", { ascending: false })
-    .limit(1);
+  const imageName = file.name.replaceAll("/", "");
+  const imagePath = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/photos/${imageName}`;
 
-  if (fetchError) {
-    console.error(fetchError);
-    throw new Error("Could not fetch existing paragraphs");
+  const { error: storageError } = await supabase.storage
+    .from("photos")
+    .upload(imageName, file, { upsert: true });
+
+  if (storageError) {
+    console.error(storageError);
+    throw new Error("Image could not be uploaded");
   }
 
-  // Calculate next ID (max ID + 1, or 1 if no paragraphs exist)
-  const nextId =
-    existingParagraphs && existingParagraphs.length > 0
-      ? existingParagraphs[0].id + 1
-      : 1;
-
-  let imagePath: string | null = null;
-
-  // Handle image upload if an image is provided and has content
-  if (photo instanceof File && photo.size > 0) {
-    const imageName = photo.name.replaceAll("/", "");
-    const newImagePath = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/photos/${imageName}`;
-    const hasImagePath = newImagePath.startsWith(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!
-    );
-
-    // Upload the image
-    const { error: storageError } = await supabase.storage
-      .from("photos")
-      .upload(imageName, photo, { upsert: true });
-
-    if (storageError) {
-      console.error(storageError);
-      throw new Error("Paragraph image could not be uploaded");
-    }
-
-    imagePath = hasImagePath ? newImagePath : imageName;
-  }
-
-  // Create the paragraph with the next sequential ID
-  const insertData: {
-    id: number;
-    desc: string;
-    photo: string | null;
-  } = {
-    id: nextId,
-    desc,
-    photo: imagePath,
-  };
-
-  const { error: insertError } = await supabase
-    .from("about")
-    .insert(insertData);
-
-  if (insertError) {
-    console.error(insertError);
-    throw new Error("Paragraph could not be created");
-  }
-
-  revalidatePath("/", "layout");
-}
-
-export async function deleteParagraph(formData: FormData) {
-  const { data, error } = await getUser();
-  if (error || !data?.user) throw new Error("You must be logged in");
-
-  const id = formData.get("id") as string;
-
-  if (!id) {
-    throw new Error("Paragraph ID is required");
-  }
-
-  // Don't allow deleting the header (id 0)
-  if (id === "0") {
-    throw new Error("Cannot delete the header section");
-  }
-
-  const supabase = await createClient();
-
-  // Delete the paragraph
-  const { error: deleteError } = await supabase
-    .from("about")
-    .delete()
-    .eq("id", id);
-
-  if (deleteError) {
-    console.error(deleteError);
-    throw new Error("Paragraph could not be deleted");
-  }
-
-  revalidatePath("/", "layout");
+  return imagePath;
 }

@@ -6,7 +6,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/account/", "/api/", "/login", "/error"],
+        disallow: ["/api/", "/login", "/error"],
       },
     ],
     sitemap: "https://yuanjia.page/sitemap.xml",

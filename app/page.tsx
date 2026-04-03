@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
+import EditableAvatar from "./_components/EditableAvatar";
 import {
   FaArrowUpRightFromSquare,
   FaLinkedin,
@@ -9,6 +9,7 @@ import {
 } from "react-icons/fa6";
 import FlickrPhotos from "./_components/FlickrPhotos";
 import Projects from "./_components/Projects";
+import ScrollReveal from "./_components/ScrollReveal";
 import { getAvatar, getFlickrPhotos } from "./_lib/data-service";
 
 export const revalidate = 3600;
@@ -39,19 +40,9 @@ export default async function Home() {
       {/* Hero */}
       <section className="py-20 md:py-28 lg:py-36 px-4">
         <div className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-14 max-w-4xl mx-auto">
-          <div className="relative flex-shrink-0">
+          <div className="relative shrink-0">
             <div className="absolute -inset-2 border border-sepia-300/60 dark:border-sepia-700/60 rounded-full" />
-            <div className="relative h-44 w-44 md:h-56 md:w-56 lg:h-64 lg:w-64 rounded-full overflow-hidden">
-              <Image
-                alt="Yuan"
-                src={avatar?.find((photo) => photo.id === 1).image}
-                fill
-                priority={true}
-                quality={75}
-                sizes="(max-width: 768px) 176px, (max-width: 1024px) 224px, 256px"
-                className="object-cover"
-              />
-            </div>
+            <EditableAvatar avatar={avatar?.find((photo) => photo.id === 1)} />
           </div>
 
           <div className="text-center md:text-left">
@@ -71,17 +62,30 @@ export default async function Home() {
               <span className="text-sepia-300 dark:text-sepia-700">|</span>
               <ul className="flex items-center gap-5">
                 <li>
-                  <a href="https://www.linkedin.com/in/yuanjia1/" target="_blank" rel="noopener noreferrer" className="text-sepia-500 dark:text-sepia-400 hover:text-sepia-700 dark:hover:text-sepia-300 transition-colors">
+                  <a
+                    href="https://www.linkedin.com/in/yuanjia1/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sepia-500 dark:text-sepia-400 hover:text-sepia-700 dark:hover:text-sepia-300 transition-colors"
+                  >
                     <FaLinkedin className="w-4 h-4" />
                   </a>
                 </li>
                 <li>
-                  <a href="https://github.com/yuan0-0jia" target="_blank" rel="noopener noreferrer" className="text-sepia-500 dark:text-sepia-400 hover:text-sepia-700 dark:hover:text-sepia-300 transition-colors">
+                  <a
+                    href="https://github.com/yuan0-0jia"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sepia-500 dark:text-sepia-400 hover:text-sepia-700 dark:hover:text-sepia-300 transition-colors"
+                  >
                     <FaGithub className="w-4 h-4" />
                   </a>
                 </li>
                 <li>
-                  <a href="mailto:hello.yuanjia@gmail.com" className="text-sepia-500 dark:text-sepia-400 hover:text-sepia-700 dark:hover:text-sepia-300 transition-colors">
+                  <a
+                    href="mailto:hello.yuanjia@gmail.com"
+                    className="text-sepia-500 dark:text-sepia-400 hover:text-sepia-700 dark:hover:text-sepia-300 transition-colors"
+                  >
                     <FaEnvelope className="w-4 h-4" />
                   </a>
                 </li>
@@ -93,19 +97,21 @@ export default async function Home() {
 
       {/* Projects */}
       <section className="bg-sepia-800 dark:bg-sepia-900 px-4 py-20 md:py-28 lg:py-36 tracking-wide">
-        <div className="text-center max-w-4xl mx-auto">
-          <header className="mb-12">
-            <div className="vintage-divider mb-8">
-              <span className="text-sepia-500">✦</span>
-            </div>
-            <h2 className="font-typewriter text-2xl md:text-3xl text-cream tracking-wide">
-              Projects
-            </h2>
-            <p className="font-typewriter text-sm mt-4 text-sepia-200 dark:text-sepia-400 tracking-wider">
-              A few things I&apos;ve built.
-            </p>
-          </header>
-        </div>
+        <ScrollReveal animation="fade-up">
+          <div className="text-center max-w-4xl mx-auto">
+            <header className="mb-12">
+              <div className="vintage-divider mb-8">
+                <span className="text-sepia-500">✦</span>
+              </div>
+              <h2 className="font-typewriter text-2xl md:text-3xl text-cream tracking-wide">
+                Projects
+              </h2>
+              <p className="font-typewriter text-sm mt-4 text-sepia-200 dark:text-sepia-400 tracking-wider">
+                A few things I&apos;ve built.
+              </p>
+            </header>
+          </div>
+        </ScrollReveal>
 
         <Projects />
       </section>
@@ -113,34 +119,38 @@ export default async function Home() {
       {/* Photos */}
       <section className="px-4 py-20 md:py-28 lg:py-36 tracking-wide">
         <div className="max-w-7xl w-full mx-auto">
-          <header className="mb-10 text-center">
-            <div className="vintage-divider mb-8">
-              <span className="text-sepia-500 dark:text-sepia-400">✦</span>
-            </div>
-            <h2 className="font-typewriter text-2xl md:text-3xl text-warmGray-800 dark:text-cream tracking-wide">
-              Photos
-            </h2>
-            <p className="font-typewriter text-sm mt-4 text-sepia-500 dark:text-sepia-400 tracking-wider">
-              What I photographed.
-            </p>
-          </header>
+          <ScrollReveal animation="fade-up">
+            <header className="mb-10 text-center">
+              <div className="vintage-divider mb-8">
+                <span className="text-sepia-500 dark:text-sepia-400">✦</span>
+              </div>
+              <h2 className="font-typewriter text-2xl md:text-3xl text-warmGray-800 dark:text-cream tracking-wide">
+                Photos
+              </h2>
+              <p className="font-typewriter text-sm mt-4 text-sepia-500 dark:text-sepia-400 tracking-wider">
+                What I photographed.
+              </p>
+            </header>
+          </ScrollReveal>
 
           <FlickrPhotos photos={flickrPhotos} count={6} />
 
-          <div className="mt-10 text-center">
-            <p className="font-typewriter text-base md:text-lg text-warmGray-700 dark:text-warmGray-200 tracking-wide leading-loose">
-              More on{" "}
-              <Link
-                href="https://www.flickr.com/photos/yuan-jia/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-sepia-600 dark:text-sepia-400 underline decoration-sepia-500/50 decoration-1 underline-offset-4 hover:decoration-sepia-500 transition-colors"
-              >
-                Flickr
-                <FaArrowUpRightFromSquare className="w-3 h-3" />
-              </Link>
-            </p>
-          </div>
+          <ScrollReveal animation="fade-up" delay={400}>
+            <div className="mt-10 text-center">
+              <p className="font-typewriter text-base md:text-lg text-warmGray-700 dark:text-warmGray-200 tracking-wide leading-loose">
+                More on{" "}
+                <Link
+                  href="https://www.flickr.com/photos/yuan-jia/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-sepia-600 dark:text-sepia-400 underline decoration-sepia-500/50 decoration-1 underline-offset-4 hover:decoration-sepia-500 transition-colors"
+                >
+                  Flickr
+                  <FaArrowUpRightFromSquare className="w-3 h-3" />
+                </Link>
+              </p>
+            </div>
+          </ScrollReveal>
         </div>
       </section>
     </>

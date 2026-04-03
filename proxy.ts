@@ -1,9 +1,3 @@
-// import { auth } from "./app/_lib/auth";
-// export const middleware = auth;
-
-// export const config = {
-//   matcher: ["/account"],
-// };
 import { type NextRequest } from "next/server";
 import { updateSession } from "./utils/supabase/middleware";
 
@@ -12,5 +6,7 @@ export default async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/account/:path*"],
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|icon.png|robots.txt|sitemap.xml).*)",
+  ],
 };

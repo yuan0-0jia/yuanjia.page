@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import "./flickr-reveal.css";
 
 function shuffleAndPickExcluding<T extends { src: string }>(
   arr: T[],
@@ -26,11 +27,34 @@ export default function FlickrPhotos({
   const [selected, setSelected] = useState(photos.slice(0, count));
   const [phase, setPhase] = useState<"idle" | "scatter" | "deal">("idle");
   const [shuffleKey, setShuffleKey] = useState(0);
+  // "pending" = not scrolled into view, "animating" = reveal playing, "done" = reveal finished
+  const [revealState, setRevealState] = useState<"pending" | "animating" | "done">("pending");
+  const gridRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     setSelected(shuffleAndPickExcluding(photos, count, []));
   }, [photos, count]);
+
+  // Observe when grid scrolls into view
+  useEffect(() => {
+    const el = gridRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setRevealState("animating");
+          // Mark reveal as done after the longest animation finishes
+          // (count * 120ms stagger + 600ms animation duration)
+          setTimeout(() => setRevealState("done"), count * 120 + 600);
+          observer.unobserve(el);
+        }
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [count]);
 
   useEffect(() => {
     return () => {
@@ -39,7 +63,10 @@ export default function FlickrPhotos({
   }, []);
 
   const handleShuffle = useCallback(() => {
-    if (phase !== "idle") return;
+    if (phase !== "idle" || revealState === "animating") return;
+
+    // If reveal hasn't happened yet, mark it done so shuffle works
+    if (revealState === "pending") setRevealState("done");
 
     setPhase("scatter");
 
@@ -68,7 +95,7 @@ export default function FlickrPhotos({
         setPhase("idle");
       }, 1200);
     });
-  }, [photos, count, phase, selected]);
+  }, [photos, count, phase, selected, revealState]);
 
   if (selected.length === 0)
     return (
@@ -86,56 +113,88 @@ export default function FlickrPhotos({
       </p>
     );
 
+  // Determine per-photo class and style based on reveal + shuffle state
+  const getPhotoProps = (i: number) => {
+    // Before scrolling into view: hidden
+    if (revealState === "pending") {
+      return {
+        className: "flickr-photo-hidden",
+        style: {} as React.CSSProperties,
+      };
+    }
+
+    // Initial reveal animation (first time scrolling into view)
+    if (revealState === "animating") {
+      return {
+        className: "flickr-photo-reveal",
+        style: { animationDelay: `${i * 0.12}s` } as React.CSSProperties,
+      };
+    }
+
+    // After reveal is done: normal shuffle behavior
+    return {
+      className: "",
+      style: {
+        transitionProperty: "transform, opacity",
+        transitionDuration: "0.5s",
+        transitionTimingFunction:
+          phase === "scatter"
+            ? "cubic-bezier(0.4, 0, 0.8, 0.4)"
+            : "cubic-bezier(0.2, 0.6, 0.4, 1)",
+        transitionDelay: phase === "scatter" ? `${i * 0.04}s` : "0s",
+        ...(phase === "scatter"
+          ? {
+              transform: `scale(0.9) rotate(${(i % 2 === 0 ? 1 : -1) * (4 + i * 2)}deg) translateY(${(i % 2 === 0 ? -1 : 1) * 30}px)`,
+              opacity: 0,
+            }
+          : phase === "deal"
+            ? {
+                animation: `deal-in 0.6s cubic-bezier(0.2, 0.6, 0.4, 1) ${i * 0.1}s both`,
+              }
+            : {}),
+      } as React.CSSProperties,
+    };
+  };
+
   return (
     <div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {selected.map((photo, i) => (
-          <a
-            key={`${shuffleKey}-${photo.src}`}
-            href={photo.link}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="relative aspect-[3/2] w-full img-vintage vintage-border rounded-sm overflow-hidden block"
-            style={{
-              transitionProperty: "transform, opacity",
-              transitionDuration: "0.5s",
-              transitionTimingFunction: phase === "scatter"
-                ? "cubic-bezier(0.4, 0, 0.8, 0.4)"
-                : "cubic-bezier(0.2, 0.6, 0.4, 1)",
-              transitionDelay: phase === "scatter" ? `${i * 0.04}s` : "0s",
-              ...(phase === "scatter"
-                ? {
-                    transform: `scale(0.9) rotate(${(i % 2 === 0 ? 1 : -1) * (4 + i * 2)}deg) translateY(${(i % 2 === 0 ? -1 : 1) * 30}px)`,
-                    opacity: 0,
-                  }
-                : phase === "deal"
-                ? {
-                    animation: `deal-in 0.6s cubic-bezier(0.2, 0.6, 0.4, 1) ${i * 0.1}s both`,
-                  }
-                : {}),
-            }}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={photo.src}
-              alt={photo.title}
-              loading="lazy"
-              className="w-full h-full object-cover"
-            />
-          </a>
-        ))}
+      <div ref={gridRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {selected.map((photo, i) => {
+          const props = getPhotoProps(i);
+          return (
+            <a
+              key={`${shuffleKey}-${photo.src}`}
+              href={photo.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`relative aspect-3/2 w-full img-vintage vintage-border rounded-sm overflow-hidden block ${props.className}`}
+              style={props.style}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={photo.src}
+                alt={photo.title}
+                loading="lazy"
+                className="w-full h-full object-cover"
+              />
+            </a>
+          );
+        })}
       </div>
       <div className="mt-8 text-center">
         <button
           onClick={handleShuffle}
-          disabled={phase !== "idle"}
+          disabled={phase !== "idle" || revealState === "animating"}
           className="font-typewriter text-sm tracking-wider text-sepia-600 dark:text-sepia-400 hover:text-sepia-800 dark:hover:text-sepia-300 transition-colors disabled:opacity-50"
         >
           <span
             className="inline-block"
             style={
               phase !== "idle"
-                ? { transform: "rotate(360deg)", transition: "transform 1s ease" }
+                ? {
+                    transform: "rotate(360deg)",
+                    transition: "transform 1s ease",
+                  }
                 : { transition: "none" }
             }
           >

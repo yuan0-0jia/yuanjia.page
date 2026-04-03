@@ -2,12 +2,15 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { FaRegUser } from "react-icons/fa6";
+import { FaRegUser, FaPencil, FaArrowRightFromBracket } from "react-icons/fa6";
 import ThemeSwitch from "./ThemeSwitch";
+import { useAuth } from "./AuthProvider";
+import { logout } from "../_lib/auth-action";
 
 export default function Navigation() {
   const [hidden, setHidden] = useState(false);
   const [lastY, setLastY] = useState(0);
+  const { isAuthenticated, isEditMode, toggleEditMode } = useAuth();
 
   useEffect(() => {
     const onScroll = () => {
@@ -47,14 +50,42 @@ export default function Navigation() {
                 About
               </Link>
             </li>
-            <li>
-              <Link
-                href="/account"
-                className="text-sepia-600 dark:text-sepia-400 hover:text-sepia-800 dark:hover:text-sepia-300 transition-colors p-2"
-              >
-                <FaRegUser className="w-4 h-4" />
-              </Link>
-            </li>
+            {isAuthenticated ? (
+              <>
+                <li>
+                  <button
+                    onClick={toggleEditMode}
+                    className={`p-2 transition-colors ${
+                      isEditMode
+                        ? "text-sepia-800 dark:text-cream bg-sepia-200 dark:bg-sepia-700 rounded-sm"
+                        : "text-sepia-600 dark:text-sepia-400 hover:text-sepia-800 dark:hover:text-sepia-300"
+                    }`}
+                    aria-label="Toggle edit mode"
+                  >
+                    <FaPencil className="w-4 h-4" />
+                  </button>
+                </li>
+                <li>
+                  <form action={logout}>
+                    <button
+                      className="text-sepia-600 dark:text-sepia-400 hover:text-sepia-800 dark:hover:text-sepia-300 transition-colors p-2"
+                      aria-label="Sign out"
+                    >
+                      <FaArrowRightFromBracket className="w-4 h-4" />
+                    </button>
+                  </form>
+                </li>
+              </>
+            ) : (
+              <li>
+                <Link
+                  href="/login"
+                  className="text-sepia-600 dark:text-sepia-400 hover:text-sepia-800 dark:hover:text-sepia-300 transition-colors p-2"
+                >
+                  <FaRegUser className="w-4 h-4" />
+                </Link>
+              </li>
+            )}
           </ul>
         </nav>
       </div>

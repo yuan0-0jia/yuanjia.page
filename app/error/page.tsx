@@ -18,10 +18,12 @@ export default function Error() {
           ✕
         </div>
         <h1 className="font-typewriter text-xl md:text-2xl text-warmGray-800 dark:text-cream mb-4 tracking-wide">
-          Oops! {error || "Something went wrong"}
+          {error ? "Nice try!" : "Oops!"}
         </h1>
         <p className="font-serif text-warmGray-500 dark:text-warmGray-400 mb-8 italic">
-          We encountered an unexpected error.
+          {error
+            ? "This door only opens for one person, and it's not you. But hey, the rest of the site is all yours."
+            : "We encountered an unexpected error."}
         </p>
         <Link
           href="/"
