@@ -1,5 +1,6 @@
 import { getAboutContent } from "../_lib/data-service";
 import { renderBlocksToHtml } from "../_lib/blocknote-renderer";
+import AboutContent from "../_components/AboutContent";
 import AboutEditToggle from "../_components/AboutEditToggle";
 
 export const metadata = {
@@ -12,8 +13,6 @@ export const revalidate = 3600;
 
 export default async function Page() {
   const content = await getAboutContent();
-
-  const renderedHtml = content ? renderBlocksToHtml(content as any) : null;
 
   return (
     <div className="mx-4 md:mx-12 lg:mx-20 my-12 md:my-20 flex flex-col items-center justify-center p-4 tracking-wide">
@@ -30,7 +29,14 @@ export default async function Page() {
           </p>
         </header>
 
-        <AboutEditToggle content={content} renderedHtml={renderedHtml} />
+        <AboutEditToggle
+          content={content}
+          renderedHtml={
+            content ? renderBlocksToHtml(content as any) : null
+          }
+        >
+          <AboutContent blocks={content} />
+        </AboutEditToggle>
       </div>
     </div>
   );

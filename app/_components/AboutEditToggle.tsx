@@ -17,9 +17,11 @@ const AboutEditor = dynamic(() => import("./AboutEditor"), {
 export default function AboutEditToggle({
   content,
   renderedHtml,
+  children,
 }: {
   content: unknown;
   renderedHtml: string | null;
+  children: React.ReactNode;
 }) {
   const { isEditMode } = useAuth();
 
@@ -27,20 +29,6 @@ export default function AboutEditToggle({
     return <AboutEditor content={content} />;
   }
 
-  if (!renderedHtml) {
-    return (
-      <div className="text-center py-20">
-        <p className="font-typewriter text-sepia-500 dark:text-sepia-400 tracking-wider">
-          No content yet.
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div
-      className="about-content font-typewriter tracking-wide leading-loose"
-      dangerouslySetInnerHTML={{ __html: renderedHtml }}
-    />
-  );
+  // In view mode, render the server-provided children as-is (no layout shift)
+  return <>{children}</>;
 }

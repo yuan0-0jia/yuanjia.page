@@ -142,8 +142,9 @@ function renderBlock(block: Block): string {
       return `<li class="check-list-item"><input type="checkbox" ${checked} /><span${textClass}>${inline}</span>${children}</li>`;
     }
     case "image": {
-      const width = block.props?.previewWidth
-        ? `max-width:${block.props.previewWidth}px;`
+      const previewWidth = block.props?.previewWidth;
+      const widthStyle = previewWidth
+        ? `max-width:${previewWidth}px;`
         : "";
       const imgAlign = block.props?.textAlignment;
       const margin =
@@ -153,8 +154,9 @@ function renderBlock(block: Block): string {
           ? "margin-left:auto;"
           : "";
       const figStyle =
-        width || margin ? ` style="${width}${margin}"` : "";
-      return `<figure${figStyle}><img src="${escapeHtml(block.props?.url || "")}" alt="${escapeHtml(block.props?.caption || "")}" loading="lazy" />${
+        widthStyle || margin ? ` style="${widthStyle}${margin}"` : "";
+      const widthAttr = previewWidth ? ` width="${previewWidth}"` : "";
+      return `<figure${figStyle}><img src="${escapeHtml(block.props?.url || "")}" alt="${escapeHtml(block.props?.caption || "")}"${widthAttr} />${
         block.props?.caption
           ? `<figcaption>${escapeHtml(block.props.caption)}</figcaption>`
           : ""

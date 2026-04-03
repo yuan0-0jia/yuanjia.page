@@ -307,7 +307,8 @@
     overflow: hidden;
   }
 
-  .about-content figure img {
+  .about-content figure img,
+  .about-content figure .about-img {
     width: 100%;
     height: auto;
     border-radius: 2px;
@@ -315,9 +316,11 @@
     box-shadow:
       inset 0 0 0 1px var(--sepia-100),
       0 4px 16px rgba(166, 124, 82, 0.12);
+    background-color: var(--sepia-100);
   }
 
-  html.dark .about-content figure img {
+  html.dark .about-content figure img,
+  html.dark .about-content figure .about-img {
     border-color: var(--sepia-700);
     box-shadow:
       inset 0 0 0 1px var(--sepia-800),
