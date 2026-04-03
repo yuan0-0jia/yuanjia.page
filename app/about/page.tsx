@@ -1,5 +1,4 @@
 import { getAboutContent } from "../_lib/data-service";
-import { renderBlocksToHtml } from "../_lib/blocknote-renderer";
 import AboutContent from "../_components/AboutContent";
 import AboutEditToggle from "../_components/AboutEditToggle";
 
@@ -29,12 +28,7 @@ export default async function Page() {
           </p>
         </header>
 
-        <AboutEditToggle
-          content={content}
-          renderedHtml={
-            content ? renderBlocksToHtml(content as any) : null
-          }
-        >
+        <AboutEditToggle content={content}>
           <AboutContent blocks={content} />
         </AboutEditToggle>
       </div>

@@ -34,7 +34,7 @@ export default function Navigation() {
           href="/"
           className="font-typewriter text-lg tracking-wider text-sepia-700 dark:text-sepia-400 hover:text-sepia-500 dark:hover:text-sepia-300 transition-colors"
         >
-          Yuan Jia
+          yuanjia.page
         </Link>
 
         <nav className="z-10 font-typewriter text-sm tracking-wider">

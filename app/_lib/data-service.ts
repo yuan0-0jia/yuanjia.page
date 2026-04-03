@@ -38,11 +38,21 @@ export async function getAboutContent() {
   return data?.content_json;
 }
 
-const FLICKR_FEED_URL =
-  "https://www.flickr.com/services/feeds/photoset.gne?set=72177720317181217&nsid=186722781@N08&format=json&nojsoncallback=1";
+const FLICKR_API_BASE = "https://www.flickr.com/services/rest";
+const FLICKR_PHOTOSET_ID = "72177720317181217";
+const FLICKR_USER_ID = "186722781@N08";
 
 export async function getFlickrPhotos() {
-  const res = await fetch(FLICKR_FEED_URL, { next: { revalidate: 3600 } });
+  const apiKey = process.env.FLICKR_API_KEY;
+
+  if (!apiKey) {
+    console.error("FLICKR_API_KEY not set");
+    return [];
+  }
+
+  const url = `${FLICKR_API_BASE}/?method=flickr.photosets.getPhotos&api_key=${apiKey}&photoset_id=${FLICKR_PHOTOSET_ID}&user_id=${FLICKR_USER_ID}&extras=url_b,url_o&format=json&nojsoncallback=1&per_page=500`;
+
+  const res = await fetch(url, { next: { revalidate: 3600 } });
 
   if (!res.ok) {
     console.error("Failed to fetch Flickr photos");
@@ -51,12 +61,71 @@ export async function getFlickrPhotos() {
 
   const data = await res.json();
 
-  return (data.items ?? []).map(
-    (item: { title: string; link: string; media: { m: string } }) => ({
-      title: item.title,
-      link: item.link,
-      // Swap _m (240px) for _b (1024px)
-      src: item.media.m.replace("_m.jpg", "_b.jpg"),
+  if (data.stat !== "ok" || !data.photoset?.photo) {
+    console.error("Flickr API error:", data.message);
+    return [];
+  }
+
+  const photos = data.photoset.photo.map(
+    (photo: {
+      id: string;
+      title: string;
+      url_b?: string;
+      url_o?: string;
+      server: string;
+      secret: string;
+    }) => ({
+      id: photo.id,
+      title: photo.title,
+      link: `https://www.flickr.com/photos/${FLICKR_USER_ID}/${photo.id}/in/set-${FLICKR_PHOTOSET_ID}/`,
+      src: photo.url_b || `https://live.staticflickr.com/${photo.server}/${photo.id}_${photo.secret}_b.jpg`,
     })
   );
+
+  // Prefetch EXIF for all photos in parallel
+  const exifResults = await Promise.allSettled(
+    photos.map((p: { id: string }) => getPhotoExif(p.id))
+  );
+
+  return photos.map((photo: any, i: number) => ({
+    ...photo,
+    exif: exifResults[i].status === "fulfilled" ? exifResults[i].value : null,
+  }));
+}
+
+export async function getPhotoExif(photoId: string) {
+  const apiKey = process.env.FLICKR_API_KEY;
+  if (!apiKey) return null;
+
+  const url = `${FLICKR_API_BASE}/?method=flickr.photos.getExif&api_key=${apiKey}&photo_id=${photoId}&format=json&nojsoncallback=1`;
+
+  const res = await fetch(url, { next: { revalidate: 86400 } });
+
+  if (!res.ok) return null;
+
+  const data = await res.json();
+
+  if (data.stat !== "ok" || !data.photo?.exif) return null;
+
+  const exifTags = data.photo.exif as Array<{
+    tag: string;
+    label: string;
+    raw: { _content: string };
+    clean?: { _content: string };
+  }>;
+
+  const getTag = (tag: string) => {
+    const found = exifTags.find((t) => t.tag === tag);
+    return found?.clean?._content || found?.raw?._content || null;
+  };
+
+  return {
+    camera: getTag("Model"),
+    lens: getTag("LensModel") || getTag("Lens"),
+    aperture: getTag("FNumber"),
+    shutter: getTag("ExposureTime"),
+    iso: getTag("ISO"),
+    focalLength: getTag("FocalLength"),
+    film: getTag("ImageDescription") || getTag("Film"),
+  };
 }

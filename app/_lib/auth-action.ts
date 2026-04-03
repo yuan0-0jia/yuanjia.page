@@ -263,6 +263,28 @@ export async function deleteProject(formData: FormData) {
   revalidatePath("/", "layout");
 }
 
+export async function reorderProjects(orderedIds: string[]) {
+  const { data, error } = await getUser();
+  if (error || !data?.user) throw new Error("You must be logged in");
+
+  const supabase = await createClient();
+
+  // Update each project's sort_order based on its position in the array
+  for (let i = 0; i < orderedIds.length; i++) {
+    const { error: updateError } = await supabase
+      .from("projects")
+      .update({ sort_order: i })
+      .eq("id", orderedIds[i]);
+
+    if (updateError) {
+      console.error(updateError);
+      throw new Error("Projects could not be reordered");
+    }
+  }
+
+  revalidatePath("/", "layout");
+}
+
 export async function updateAboutContent(contentJson: unknown) {
   const { data, error } = await getUser();
   if (error || !data?.user) throw new Error("You must be logged in");

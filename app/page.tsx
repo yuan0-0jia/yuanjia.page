@@ -1,4 +1,3 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import EditableAvatar from "./_components/EditableAvatar";
 import {
@@ -10,24 +9,10 @@ import {
 import FlickrPhotos from "./_components/FlickrPhotos";
 import Projects from "./_components/Projects";
 import ScrollReveal from "./_components/ScrollReveal";
+import TypewriterText from "./_components/TypewriterText";
 import { getAvatar, getFlickrPhotos } from "./_lib/data-service";
 
 export const revalidate = 3600;
-
-export async function generateMetadata(): Promise<Metadata> {
-  const avatar = await getAvatar();
-  const avatarUrl = avatar?.find((photo) => photo.id === 1)?.image;
-
-  return {
-    openGraph: avatarUrl
-      ? {
-          images: [
-            { url: avatarUrl, width: 400, height: 400, alt: "Yuan Jia" },
-          ],
-        }
-      : undefined,
-  };
-}
 
 export default async function Home() {
   const [avatar, flickrPhotos] = await Promise.all([
@@ -49,9 +34,12 @@ export default async function Home() {
             <h1 className="font-typewriter text-3xl md:text-4xl lg:text-5xl text-warmGray-800 dark:text-cream mb-3 animate-fade-in-up opacity-0 stagger-1">
               Yuan Jia
             </h1>
-            <p className="font-typewriter text-sm md:text-base text-sepia-600 dark:text-sepia-400 mb-6 animate-fade-in-up opacity-0 stagger-2 tracking-wider leading-relaxed">
-              Software engineer &amp; photographer
-            </p>
+            <TypewriterText
+              text="Software engineer & photographer"
+              delay={600}
+              speed={60}
+              className="font-typewriter text-sm md:text-base text-sepia-600 dark:text-sepia-400 mb-6 tracking-wider leading-relaxed h-[1.5em]"
+            />
             <div className="flex items-center gap-5 justify-center md:justify-start animate-fade-in-up opacity-0 stagger-3">
               <Link
                 href="/about"

@@ -16,11 +16,9 @@ const AboutEditor = dynamic(() => import("./AboutEditor"), {
 
 export default function AboutEditToggle({
   content,
-  renderedHtml,
   children,
 }: {
   content: unknown;
-  renderedHtml: string | null;
   children: React.ReactNode;
 }) {
   const { isEditMode } = useAuth();

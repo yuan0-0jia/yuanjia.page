@@ -46,6 +46,7 @@ const config: Config = {
         "fade-in": "fadeIn 0.5s ease-out forwards",
         "fade-in-up": "fadeInUp 0.6s ease-out forwards",
         "typewriter": "typewriter 2s steps(20) forwards",
+        "blink": "blink 0.8s step-end infinite",
       },
       keyframes: {
         fadeIn: {
@@ -59,6 +60,10 @@ const config: Config = {
         typewriter: {
           "0%": { width: "0" },
           "100%": { width: "100%" },
+        },
+        blink: {
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0" },
         },
       },
     },
