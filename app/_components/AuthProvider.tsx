@@ -19,6 +19,10 @@ export function useAuth() {
   return useContext(AuthContext);
 }
 
+function hasAuthCookie(): boolean {
+  return document.cookie.split(";").some((c) => c.trim().startsWith("sb-"));
+}
+
 export default function AuthProvider({
   children,
 }: {
@@ -28,6 +32,9 @@ export default function AuthProvider({
   const [isEditMode, setIsEditMode] = useState(false);
 
   useEffect(() => {
+    // Skip auth check entirely if no Supabase cookies exist
+    if (!hasAuthCookie()) return;
+
     const supabase = createClient();
 
     supabase.auth.getUser().then(({ data }) => {

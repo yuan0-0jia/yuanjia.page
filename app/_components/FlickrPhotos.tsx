@@ -1,18 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FaChevronLeft, FaChevronRight, FaXmark, FaArrowUpRightFromSquare, FaCamera } from "react-icons/fa6";
+import dynamic from "next/dynamic";
 import "./flickr-reveal.css";
 
-interface ExifData {
-  camera: string | null;
-  lens: string | null;
-  aperture: string | null;
-  shutter: string | null;
-  iso: string | null;
-  focalLength: string | null;
-  film: string | null;
-}
+const PhotoLightbox = dynamic(() => import("./PhotoLightbox"), { ssr: false });
 
 function shuffleAndPickExcluding<T extends { src: string }>(
   arr: T[],
@@ -28,7 +20,7 @@ function shuffleAndPickExcluding<T extends { src: string }>(
   return shuffled.slice(0, count);
 }
 
-type Photo = { id: string; title: string; link: string; src: string; exif?: ExifData | null };
+type Photo = { id: string; title: string; link: string; src: string; exif?: any };
 
 export default function FlickrPhotos({
   photos,
@@ -42,8 +34,6 @@ export default function FlickrPhotos({
   const [shuffleKey, setShuffleKey] = useState(0);
   const [revealState, setRevealState] = useState<"pending" | "animating" | "done">("pending");
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-  const [lightboxClosing, setLightboxClosing] = useState(false);
-  const [lightboxDirection, setLightboxDirection] = useState<"left" | "right" | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -74,45 +64,6 @@ export default function FlickrPhotos({
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
   }, []);
-
-  const goLightbox = useCallback((dir: "left" | "right") => {
-    if (lightboxDirection) return; // already animating
-    setLightboxDirection(dir);
-    setTimeout(() => {
-      setLightboxIndex((i) => {
-        if (i === null) return null;
-        return dir === "left" ? Math.max(0, i - 1) : Math.min(selected.length - 1, i + 1);
-      });
-      setLightboxDirection(null);
-    }, 150);
-  }, [lightboxDirection, selected.length]);
-
-  const closeLightbox = useCallback(() => {
-    setLightboxClosing(true);
-    setTimeout(() => {
-      setLightboxIndex(null);
-      setLightboxClosing(false);
-    }, 200);
-  }, []);
-
-  // Keyboard navigation for lightbox
-  useEffect(() => {
-    if (lightboxIndex === null) return;
-
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") closeLightbox();
-      if (e.key === "ArrowLeft") goLightbox("left");
-      if (e.key === "ArrowRight") goLightbox("right");
-    };
-
-    // Prevent body scroll
-    document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", handleKey);
-    return () => {
-      document.body.style.overflow = "";
-      window.removeEventListener("keydown", handleKey);
-    };
-  }, [lightboxIndex, selected.length, closeLightbox]);
 
   const handleShuffle = useCallback(() => {
     if (phase !== "idle" || revealState === "animating") return;
@@ -201,8 +152,6 @@ export default function FlickrPhotos({
     };
   };
 
-  const lightboxPhoto = lightboxIndex !== null ? selected[lightboxIndex] : null;
-
   return (
     <div>
       <div ref={gridRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -219,7 +168,7 @@ export default function FlickrPhotos({
               <img
                 src={photo.src}
                 alt={photo.title}
-                loading="lazy"
+                loading="eager"
                 className="w-full h-full object-cover"
               />
             </button>
@@ -249,109 +198,13 @@ export default function FlickrPhotos({
         </button>
       </div>
 
-      {/* Lightbox */}
-      {lightboxPhoto && (
-        <div
-          className={`fixed inset-0 z-50 flex items-center justify-center bg-warmGray-900/90 dark:bg-black/90 backdrop-blur-sm lightbox-backdrop ${lightboxClosing ? "lightbox-closing" : ""}`}
-          onClick={closeLightbox}
-        >
-          {/* Close button */}
-          <button
-            onClick={closeLightbox}
-            className="absolute top-6 right-6 text-cream/80 hover:text-cream transition-colors z-10"
-            aria-label="Close lightbox"
-          >
-            <FaXmark className="w-6 h-6" />
-          </button>
-
-          {/* Previous */}
-          {lightboxIndex! > 0 && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                goLightbox("left");
-              }}
-              className="absolute left-4 md:left-8 text-cream/60 hover:text-cream transition-colors z-10"
-              aria-label="Previous photo"
-            >
-              <FaChevronLeft className="w-6 h-6 md:w-8 md:h-8" />
-            </button>
-          )}
-
-          {/* Next */}
-          {lightboxIndex! < selected.length - 1 && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                goLightbox("right");
-              }}
-              className="absolute right-4 md:right-8 text-cream/60 hover:text-cream transition-colors z-10"
-              aria-label="Next photo"
-            >
-              <FaChevronRight className="w-6 h-6 md:w-8 md:h-8" />
-            </button>
-          )}
-
-          {/* Image + caption */}
-          <div
-            className={`flex flex-col items-center max-w-5xl max-h-[85vh] px-12 md:px-20 lightbox-image ${
-              lightboxDirection === "left" ? "lightbox-slide-left" :
-              lightboxDirection === "right" ? "lightbox-slide-right" : ""
-            }`}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={lightboxPhoto.src}
-              alt={lightboxPhoto.title}
-              className="max-h-[75vh] max-w-full object-contain rounded-sm"
-            />
-            <div className="mt-4 text-center">
-              {lightboxPhoto.title && (
-                <p className="font-typewriter text-sm text-cream/80 tracking-wider mb-2">
-                  {lightboxPhoto.title}
-                </p>
-              )}
-
-              {/* EXIF data */}
-              {(() => {
-                const exif = lightboxPhoto.exif;
-                if (!exif) return null;
-
-                const parts = [
-                  exif.camera,
-                  exif.lens,
-                  exif.focalLength,
-                  exif.aperture ? (exif.aperture.startsWith("f/") ? exif.aperture : `f/${exif.aperture}`) : null,
-                  exif.shutter ? `${exif.shutter}s` : null,
-                  exif.iso ? `ISO ${exif.iso}` : null,
-                  exif.film,
-                ].filter(Boolean);
-
-                if (parts.length === 0) return null;
-
-                return (
-                  <div className="flex items-center justify-center gap-1.5 mb-2 flex-wrap">
-                    <FaCamera className="w-2.5 h-2.5 text-sepia-500" />
-                    <p className="font-typewriter text-[11px] text-cream/50 tracking-wider">
-                      {parts.join(" · ")}
-                    </p>
-                  </div>
-                );
-              })()}
-
-              <a
-                href={lightboxPhoto.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 font-typewriter text-xs text-sepia-400 hover:text-sepia-300 tracking-wider transition-colors"
-              >
-                View on Flickr
-                <FaArrowUpRightFromSquare className="w-2.5 h-2.5" />
-              </a>
-            </div>
-          </div>
-        </div>
+      {lightboxIndex !== null && (
+        <PhotoLightbox
+          photos={selected}
+          index={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+          onChange={setLightboxIndex}
+        />
       )}
     </div>
   );

@@ -22,31 +22,54 @@ export default function ScrollReveal({
   className?: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const [isVisible, setIsVisible] = useState(false);
+  const checked = useRef(false);
+  const [state, setState] = useState<"idle" | "hidden" | "visible">("idle");
 
   useEffect(() => {
+    if (checked.current) return;
+    checked.current = true;
+
     const el = ref.current;
     if (!el) return;
 
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-          observer.unobserve(el);
-        }
-      },
-      { threshold: 0.15 }
-    );
+    const rect = el.getBoundingClientRect();
+    if (rect.top < window.innerHeight && rect.bottom > 0) {
+      // Already in viewport — skip animation entirely
+      setState("visible");
+    } else {
+      // Below viewport — set hidden and observe
+      setState("hidden");
 
-    observer.observe(el);
-    return () => observer.disconnect();
+      const observer = new IntersectionObserver(
+        ([entry]) => {
+          if (entry.isIntersecting) {
+            setState("visible");
+            observer.unobserve(el);
+          }
+        },
+        { threshold: 0.15 }
+      );
+
+      observer.observe(el);
+      return () => observer.disconnect();
+    }
   }, []);
+
+  // "idle" = SSR/pre-hydration: no animation classes, render normally
+  // "hidden" = below viewport: apply hidden animation styles
+  // "visible" = animate in or already shown
+  const animClass =
+    state === "idle"
+      ? ""
+      : state === "hidden"
+      ? animation
+      : `${animation} is-visible`;
 
   return (
     <div
       ref={ref}
-      className={`scroll-reveal ${animation} ${isVisible ? "is-visible" : ""} ${className}`}
-      style={{ transitionDelay: `${delay}ms` }}
+      className={`scroll-reveal ${animClass} ${className}`.trim()}
+      style={state === "hidden" ? { transitionDelay: `${delay}ms` } : undefined}
     >
       {children}
     </div>

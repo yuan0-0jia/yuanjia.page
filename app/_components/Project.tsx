@@ -1,13 +1,14 @@
+"use client";
+
+import { useState } from "react";
 import Button from "./Button";
 
-// Generate Microlink screenshot URL for external websites
 function getMicrolinkScreenshot(url: string) {
   return `https://api.microlink.io/?url=${encodeURIComponent(
     url
   )}&screenshot=true&meta=false&embed=screenshot.url`;
 }
 
-// Check if URL is external (starts with http/https)
 function isExternalUrl(url: string) {
   return url.startsWith("http://") || url.startsWith("https://");
 }
@@ -20,19 +21,17 @@ export default function Project({
   previewUrl,
   reverse,
   button,
+  priority = false,
 }: {
   header: string;
   desc: string;
   to: string;
   image: string;
-  previewUrl?: string; // Separate URL for screenshot
+  previewUrl?: string;
   reverse: boolean;
   button: string;
+  priority?: boolean;
 }) {
-  // Determine the image source:
-  // 1. Use uploaded thumbnail if available
-  // 2. Use Microlink screenshot if previewUrl is provided and external
-  // 3. Show placeholder if neither
   const hasUploadedImage = image && image.length > 0;
   const canUseMicrolink =
     !hasUploadedImage && !!previewUrl && isExternalUrl(previewUrl);
@@ -42,11 +41,15 @@ export default function Project({
     ? getMicrolinkScreenshot(previewUrl)
     : null;
 
+  const [ready, setReady] = useState(!imageSrc);
+
   return (
     <section
       className={`flex flex-col ${
         reverse ? "md:flex-row-reverse" : "md:flex-row"
-      } my-8 md:my-12 justify-center items-center gap-6 md:gap-10 lg:gap-14 max-w-6xl mx-auto px-4 md:px-12 card-hover p-6 md:p-8 bg-sepia-700/40 dark:bg-sepia-800/50 border border-sepia-600/30 dark:border-sepia-700/30 rounded-sm`}
+      } my-8 md:my-12 justify-center items-center gap-6 md:gap-10 lg:gap-14 max-w-6xl mx-auto px-4 md:px-12 card-hover p-6 md:p-8 bg-sepia-700/40 dark:bg-sepia-800/50 border border-sepia-600/30 dark:border-sepia-700/30 rounded-sm transition-opacity duration-500 ${
+        ready ? "opacity-100" : "opacity-0"
+      }`}
     >
       {/* Content */}
       <div className="max-w-md text-center md:text-left">
@@ -64,11 +67,17 @@ export default function Project({
         </Button>
       </div>
 
-      {/* Image with vintage styling - natural size, no cropping */}
+      {/* Image */}
       {imageSrc ? (
         <div className="w-full md:w-auto md:max-w-[500px] img-vintage rounded-sm overflow-hidden border border-sepia-600/30">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img alt={header} src={imageSrc} loading="lazy" className="w-full h-auto" />
+          <img
+            alt={header}
+            src={imageSrc}
+            onLoad={() => setReady(true)}
+            className="w-full h-auto"
+            fetchPriority={priority ? "high" : undefined}
+          />
         </div>
       ) : (
         <div className="w-full md:w-96 h-56 md:h-64 flex items-center justify-center bg-sepia-700/30 rounded-sm border border-sepia-600/30">

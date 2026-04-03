@@ -122,6 +122,7 @@ export default function ProjectsList({
                 previewUrl={project.preview_url ?? undefined}
                 reverse={reverse}
                 button={project.button}
+                priority={i === 0}
               />
             </ScrollReveal>
           );

@@ -25,22 +25,22 @@ export default async function Home() {
       {/* Hero */}
       <section className="py-20 md:py-28 lg:py-36 px-4">
         <div className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-14 max-w-4xl mx-auto">
-          <div className="relative shrink-0">
+          <div className="relative shrink-0 animate-fade-in opacity-0 stagger-1">
             <div className="absolute -inset-2 border border-sepia-300/60 dark:border-sepia-700/60 rounded-full" />
             <EditableAvatar avatar={avatar?.find((photo) => photo.id === 1)} />
           </div>
 
           <div className="text-center md:text-left">
-            <h1 className="font-typewriter text-3xl md:text-4xl lg:text-5xl text-warmGray-800 dark:text-cream mb-3 animate-fade-in-up opacity-0 stagger-1">
+            <h1 className="font-typewriter text-3xl md:text-4xl lg:text-5xl text-warmGray-800 dark:text-cream mb-3 animate-fade-in-up opacity-0 stagger-2">
               Yuan Jia
             </h1>
             <TypewriterText
               text="Software engineer & photographer"
-              delay={600}
+              delay={800}
               speed={60}
               className="font-typewriter text-sm md:text-base text-sepia-600 dark:text-sepia-400 mb-6 tracking-wider leading-relaxed h-[1.5em]"
             />
-            <div className="flex items-center gap-5 justify-center md:justify-start animate-fade-in-up opacity-0 stagger-3">
+            <div className="flex items-center gap-5 justify-center md:justify-start animate-fade-in-up opacity-0 stagger-4">
               <Link
                 href="/about"
                 className="font-typewriter text-sm tracking-wider text-sepia-600 dark:text-sepia-400 underline decoration-sepia-500/50 decoration-1 underline-offset-4 hover:decoration-sepia-500 dark:hover:decoration-sepia-400 transition-colors"
