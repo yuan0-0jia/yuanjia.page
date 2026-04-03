@@ -53,8 +53,8 @@
   }
 
   html {
+    overflow-x: hidden;
     overflow-y: scroll;
-    scroll-behavior: smooth;
     scrollbar-width: thin;
     scrollbar-color: var(--sepia-500) var(--cream);
   }

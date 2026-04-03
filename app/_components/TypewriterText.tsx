@@ -54,7 +54,7 @@ export default function TypewriterText({
           {char}
         </span>
       ))}
-      {!done && (
+      {started && !done && (
         <span className="inline-block w-[0.5em] h-[1.1em] bg-sepia-600/80 dark:bg-sepia-400/80 ml-px align-middle animate-blink" />
       )}
     </p>

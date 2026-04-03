@@ -322,7 +322,7 @@ export default function FlickrPhotos({
                   exif.camera,
                   exif.lens,
                   exif.focalLength,
-                  exif.aperture ? `f/${exif.aperture}` : null,
+                  exif.aperture ? (exif.aperture.startsWith("f/") ? exif.aperture : `f/${exif.aperture}`) : null,
                   exif.shutter ? `${exif.shutter}s` : null,
                   exif.iso ? `ISO ${exif.iso}` : null,
                   exif.film,

@@ -1,7 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: false,
-  viewTransition: true,
   images: {
     remotePatterns: [
       {
@@ -15,8 +14,9 @@ const nextConfig = {
     minimumCacheTTL: 31536000,
   },
   experimental: {
+    viewTransition: true,
     serverActions: {
-      bodySizeLimit: "5mb", // Increased from default 1mb to allow image uploads
+      bodySizeLimit: "5mb",
     },
   },
   distDir: "_next",

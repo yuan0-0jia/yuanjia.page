@@ -58,6 +58,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
+      data-scroll-behavior="smooth"
       className={`${specialElite.variable} ${lora.variable}`}
     >
       <head>

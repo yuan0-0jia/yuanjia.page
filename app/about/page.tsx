@@ -17,20 +17,22 @@ export default async function Page() {
     <div className="mx-4 md:mx-12 lg:mx-20 my-12 md:my-20 flex flex-col items-center justify-center p-4 tracking-wide">
       <div className="max-w-5xl w-full">
         <header className="text-center mb-12">
-          <div className="vintage-divider mb-8">
+          <div className="vintage-divider mb-8 animate-fade-in opacity-0 stagger-1">
             <span className="text-sepia-500 dark:text-sepia-400">✦</span>
           </div>
-          <h1 className="font-typewriter text-3xl md:text-4xl text-warmGray-800 dark:text-cream tracking-wide">
+          <h1 className="font-typewriter text-3xl md:text-4xl text-warmGray-800 dark:text-cream tracking-wide animate-fade-in-up opacity-0 stagger-2">
             About Me
           </h1>
-          <p className="font-typewriter text-sm mt-4 text-sepia-500 dark:text-sepia-400 tracking-wider">
+          <p className="font-typewriter text-sm mt-4 text-sepia-500 dark:text-sepia-400 tracking-wider animate-fade-in-up opacity-0 stagger-3">
             — Yuan Jia —
           </p>
         </header>
 
-        <AboutEditToggle content={content}>
-          <AboutContent blocks={content} />
-        </AboutEditToggle>
+        <div className="animate-fade-in-up opacity-0 stagger-4">
+          <AboutEditToggle content={content}>
+            <AboutContent blocks={content} />
+          </AboutEditToggle>
+        </div>
       </div>
     </div>
   );

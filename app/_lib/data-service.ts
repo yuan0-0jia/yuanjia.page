@@ -119,11 +119,16 @@ export async function getPhotoExif(photoId: string) {
     return found?.clean?._content || found?.raw?._content || null;
   };
 
+  const getRawTag = (tag: string) => {
+    const found = exifTags.find((t) => t.tag === tag);
+    return found?.raw?._content || found?.clean?._content || null;
+  };
+
   return {
     camera: getTag("Model"),
     lens: getTag("LensModel") || getTag("Lens"),
     aperture: getTag("FNumber"),
-    shutter: getTag("ExposureTime"),
+    shutter: getRawTag("ExposureTime"),
     iso: getTag("ISO"),
     focalLength: getTag("FocalLength"),
     film: getTag("ImageDescription") || getTag("Film"),
