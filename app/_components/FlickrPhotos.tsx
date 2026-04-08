@@ -20,7 +20,7 @@ function shuffleAndPickExcluding<T extends { src: string }>(
   return shuffled.slice(0, count);
 }
 
-type Photo = { id: string; title: string; link: string; src: string; exif?: any };
+type Photo = { id: string; title: string; link: string; src: string };
 
 export default function FlickrPhotos({
   photos,

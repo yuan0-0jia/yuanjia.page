@@ -69,18 +69,18 @@ export default function Project({
 
       {/* Image */}
       {imageSrc ? (
-        <div className="w-full md:w-auto md:max-w-[500px] img-vintage rounded-sm overflow-hidden border border-sepia-600/30">
+        <div className="w-full md:w-auto md:max-w-[500px] aspect-video img-vintage rounded-sm overflow-hidden border border-sepia-600/30">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             alt={header}
             src={imageSrc}
             onLoad={() => setReady(true)}
-            className="w-full h-auto"
+            className="w-full h-full object-cover"
             fetchPriority={priority ? "high" : undefined}
           />
         </div>
       ) : (
-        <div className="w-full md:w-96 h-56 md:h-64 flex items-center justify-center bg-sepia-700/30 rounded-sm border border-sepia-600/30">
+        <div className="w-full md:w-96 aspect-video flex items-center justify-center bg-sepia-700/30 rounded-sm border border-sepia-600/30">
           <span className="font-typewriter text-sepia-500">
             No image available
           </span>

@@ -70,6 +70,8 @@ export default function RootLayout({
           rel="dns-prefetch"
           href="https://yltbxotlxxqixuyxsrxm.supabase.co"
         />
+        <link rel="preconnect" href="https://live.staticflickr.com" />
+        <link rel="dns-prefetch" href="https://live.staticflickr.com" />
       </head>
       <body
         className={`antialiased flex flex-col relative min-h-screen bg-cream dark:bg-warmGray-900 text-warmGray-800 dark:text-cream transition-colors font-serif`}

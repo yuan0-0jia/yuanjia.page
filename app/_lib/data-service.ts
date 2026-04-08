@@ -66,7 +66,7 @@ export async function getFlickrPhotos() {
     return [];
   }
 
-  const photos = data.photoset.photo.map(
+  return data.photoset.photo.map(
     (photo: {
       id: string;
       title: string;
@@ -81,16 +81,6 @@ export async function getFlickrPhotos() {
       src: photo.url_b || `https://live.staticflickr.com/${photo.server}/${photo.id}_${photo.secret}_b.jpg`,
     })
   );
-
-  // Prefetch EXIF for all photos in parallel
-  const exifResults = await Promise.allSettled(
-    photos.map((p: { id: string }) => getPhotoExif(p.id))
-  );
-
-  return photos.map((photo: any, i: number) => ({
-    ...photo,
-    exif: exifResults[i].status === "fulfilled" ? exifResults[i].value : null,
-  }));
 }
 
 export async function getPhotoExif(photoId: string) {

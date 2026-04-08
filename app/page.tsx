@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import EditableAvatar from "./_components/EditableAvatar";
 import {
   FaArrowUpRightFromSquare,
@@ -14,11 +15,13 @@ import { getAvatar, getFlickrPhotos } from "./_lib/data-service";
 
 export const revalidate = 3600;
 
+async function PhotosGrid() {
+  const flickrPhotos = await getFlickrPhotos();
+  return <FlickrPhotos photos={flickrPhotos} count={6} />;
+}
+
 export default async function Home() {
-  const [avatar, flickrPhotos] = await Promise.all([
-    getAvatar(),
-    getFlickrPhotos(),
-  ]);
+  const avatar = await getAvatar();
 
   return (
     <>
@@ -36,7 +39,7 @@ export default async function Home() {
             </h1>
             <TypewriterText
               text="Software engineer & photographer"
-              delay={800}
+              delay={1400}
               speed={60}
               className="font-typewriter text-sm md:text-base text-sepia-600 dark:text-sepia-400 mb-6 tracking-wider leading-relaxed h-[1.5em]"
             />
@@ -101,7 +104,9 @@ export default async function Home() {
           </div>
         </ScrollReveal>
 
-        <Projects />
+        <Suspense>
+          <Projects />
+        </Suspense>
       </section>
 
       {/* Photos */}
@@ -121,7 +126,9 @@ export default async function Home() {
             </header>
           </ScrollReveal>
 
-          <FlickrPhotos photos={flickrPhotos} count={6} />
+          <Suspense>
+            <PhotosGrid />
+          </Suspense>
 
           <ScrollReveal animation="fade-up" delay={400}>
             <div className="mt-10 text-center">

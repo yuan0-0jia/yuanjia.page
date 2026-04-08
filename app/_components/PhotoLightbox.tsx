@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { FaChevronLeft, FaChevronRight, FaXmark, FaArrowUpRightFromSquare, FaCamera } from "react-icons/fa6";
 
 interface ExifData {
@@ -13,7 +13,7 @@ interface ExifData {
   film: string | null;
 }
 
-type Photo = { id: string; title: string; link: string; src: string; exif?: ExifData | null };
+type Photo = { id: string; title: string; link: string; src: string };
 
 export default function PhotoLightbox({
   photos,
@@ -28,13 +28,31 @@ export default function PhotoLightbox({
 }) {
   const [closing, setClosing] = useState(false);
   const [direction, setDirection] = useState<"left" | "right" | null>(null);
-  const [imageLoaded, setImageLoaded] = useState(false);
+  const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
+  const [exif, setExif] = useState<ExifData | null>(null);
+  const exifCache = useRef<Map<string, ExifData | null>>(new Map());
   const photo = photos[index];
+  const imageLoaded = loadedSrc === photo?.src;
 
-  // Reset loaded state when photo changes
+  // Fetch EXIF on demand
   useEffect(() => {
-    setImageLoaded(false);
-  }, [photo?.src]);
+    if (!photo) return;
+    const cached = exifCache.current.get(photo.id);
+    if (cached !== undefined) {
+      setExif(cached);
+      return;
+    }
+    setExif(null);
+    fetch(`/api/exif/${photo.id}`)
+      .then((r) => r.json())
+      .then((data) => {
+        exifCache.current.set(photo.id, data);
+        setExif(data);
+      })
+      .catch(() => {
+        exifCache.current.set(photo.id, null);
+      });
+  }, [photo?.id, photo]);
 
   const close = useCallback(() => {
     setClosing(true);
@@ -67,7 +85,6 @@ export default function PhotoLightbox({
 
   if (!photo) return null;
 
-  const exif = photo.exif;
   const exifParts = exif ? [
     exif.camera,
     exif.lens,
@@ -122,24 +139,20 @@ export default function PhotoLightbox({
         <img
           src={photo.src}
           alt={photo.title}
-          onLoad={() => setImageLoaded(true)}
+          onLoad={() => setLoadedSrc(photo.src)}
           className={`max-h-[75vh] max-w-full object-contain rounded-sm transition-opacity duration-300 ${imageLoaded ? "opacity-100" : "opacity-0"}`}
         />
-        <div className="mt-4 text-center">
-          {photo.title && (
-            <p className="font-typewriter text-sm text-cream/80 tracking-wider mb-2">
-              {photo.title}
-            </p>
-          )}
+        <div className={`mt-4 text-center transition-opacity duration-300 ${imageLoaded ? "opacity-100" : "opacity-0"}`}>
+          <p className="font-typewriter text-sm text-cream/80 tracking-wider mb-2 min-h-5">
+            {photo.title || "\u00A0"}
+          </p>
 
-          {exifParts.length > 0 && (
-            <div className="flex items-center justify-center gap-1.5 mb-2 flex-wrap">
-              <FaCamera className="w-2.5 h-2.5 text-sepia-500" />
-              <p className="font-typewriter text-[11px] text-cream/50 tracking-wider">
-                {exifParts.join(" · ")}
-              </p>
-            </div>
-          )}
+          <div className={`flex items-center justify-center gap-1.5 mb-2 flex-wrap min-h-5 transition-opacity duration-300 ${exifParts.length > 0 ? "opacity-100" : "opacity-0"}`}>
+            <FaCamera className="w-2.5 h-2.5 text-sepia-500" />
+            <p className="font-typewriter text-[11px] text-cream/50 tracking-wider">
+              {exifParts.length > 0 ? exifParts.join(" · ") : "\u00A0"}
+            </p>
+          </div>
 
           <a
             href={photo.link}
