@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FaChevronLeft, FaChevronRight, FaXmark, FaArrowUpRightFromSquare, FaCamera } from "react-icons/fa6";
+import { FaChevronLeft, FaChevronRight, FaXmark, FaArrowUpRightFromSquare } from "react-icons/fa6";
 
 interface ExifData {
   camera: string | null;
@@ -30,6 +30,7 @@ export default function PhotoLightbox({
   const [direction, setDirection] = useState<"left" | "right" | null>(null);
   const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
   const [exif, setExif] = useState<ExifData | null>(null);
+  const [exifPhotoId, setExifPhotoId] = useState<string | null>(null);
   const exifCache = useRef<Map<string, ExifData | null>>(new Map());
   const photo = photos[index];
   const imageLoaded = loadedSrc === photo?.src;
@@ -40,14 +41,17 @@ export default function PhotoLightbox({
     const cached = exifCache.current.get(photo.id);
     if (cached !== undefined) {
       setExif(cached);
+      setExifPhotoId(photo.id);
       return;
     }
     setExif(null);
+    setExifPhotoId(null);
     fetch(`/api/exif/${photo.id}`)
       .then((r) => r.json())
       .then((data) => {
         exifCache.current.set(photo.id, data);
         setExif(data);
+        setExifPhotoId(photo.id);
       })
       .catch(() => {
         exifCache.current.set(photo.id, null);
@@ -85,7 +89,7 @@ export default function PhotoLightbox({
 
   if (!photo) return null;
 
-  const exifParts = exif ? [
+  const exifParts = exif && exifPhotoId === photo.id ? [
     exif.camera,
     exif.lens,
     exif.focalLength,
@@ -148,7 +152,6 @@ export default function PhotoLightbox({
           </p>
 
           <div className={`flex items-center justify-center gap-1.5 mb-2 flex-wrap min-h-5 transition-opacity duration-300 ${exifParts.length > 0 ? "opacity-100" : "opacity-0"}`}>
-            <FaCamera className="w-2.5 h-2.5 text-sepia-500" />
             <p className="font-typewriter text-[11px] text-cream/50 tracking-wider">
               {exifParts.length > 0 ? exifParts.join(" · ") : "\u00A0"}
             </p>
