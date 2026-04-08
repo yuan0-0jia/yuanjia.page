@@ -41,15 +41,42 @@ export default function FlickrPhotos({
     setSelected(shuffleAndPickExcluding(photos, count, []));
   }, [photos, count]);
 
-  // Observe when grid scrolls into view
+  // Observe when grid scrolls into view, but wait for images to load first
   useEffect(() => {
     const el = gridRef.current;
     if (!el) return;
+
+    let inView = false;
+    let imagesReady = false;
+
+    const tryReveal = () => {
+      if (inView && imagesReady) {
+        setRevealState("animating");
+        setTimeout(() => setRevealState("done"), count * 120 + 600);
+      }
+    };
+
+    // Preload current images
+    Promise.all(
+      selected.map(
+        (photo) =>
+          new Promise<void>((resolve) => {
+            const img = new window.Image();
+            img.onload = () => resolve();
+            img.onerror = () => resolve();
+            img.src = photo.src;
+          }),
+      ),
+    ).then(() => {
+      imagesReady = true;
+      tryReveal();
+    });
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          setRevealState("animating");
-          setTimeout(() => setRevealState("done"), count * 120 + 600);
+          inView = true;
+          tryReveal();
           observer.unobserve(el);
         }
       },
@@ -57,6 +84,8 @@ export default function FlickrPhotos({
     );
     observer.observe(el);
     return () => observer.disconnect();
+    // Only run on mount — selected changes are handled by shuffle
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [count]);
 
   useEffect(() => {

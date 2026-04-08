@@ -1,5 +1,5 @@
-import Image from "next/image";
 import { Fragment, type ReactNode } from "react";
+import { FadeImage, FadeImg } from "./FadeImage";
 
 interface InlineContent {
   type: string;
@@ -159,7 +159,7 @@ function RenderBlock({ block }: { block: Block }) {
         <>
           <figure style={{ maxWidth: `${previewWidth}px`, margin }}>
             {isSupabase ? (
-              <Image
+              <FadeImage
                 src={url}
                 alt={caption || ""}
                 width={previewWidth}
@@ -167,13 +167,9 @@ function RenderBlock({ block }: { block: Block }) {
                 sizes={`(max-width: ${previewWidth}px) 100vw, ${previewWidth}px`}
                 className="about-img"
                 style={{ width: "100%", height: "auto" }}
-                placeholder="blur"
-                blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjUzMyIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjVlZmUzIi8+PC9zdmc+"
               />
             ) : (
-              // External images can't use Next.js Image without adding their domain
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
+              <FadeImg
                 src={url}
                 alt={caption || ""}
                 width={previewWidth}

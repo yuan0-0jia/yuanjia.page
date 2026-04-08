@@ -28,7 +28,13 @@ export default function PhotoLightbox({
 }) {
   const [closing, setClosing] = useState(false);
   const [direction, setDirection] = useState<"left" | "right" | null>(null);
+  const [imageLoaded, setImageLoaded] = useState(false);
   const photo = photos[index];
+
+  // Reset loaded state when photo changes
+  useEffect(() => {
+    setImageLoaded(false);
+  }, [photo?.src]);
 
   const close = useCallback(() => {
     setClosing(true);
@@ -116,7 +122,8 @@ export default function PhotoLightbox({
         <img
           src={photo.src}
           alt={photo.title}
-          className="max-h-[75vh] max-w-full object-contain rounded-sm"
+          onLoad={() => setImageLoaded(true)}
+          className={`max-h-[75vh] max-w-full object-contain rounded-sm transition-opacity duration-300 ${imageLoaded ? "opacity-100" : "opacity-0"}`}
         />
         <div className="mt-4 text-center">
           {photo.title && (
