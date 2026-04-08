@@ -1,10 +1,11 @@
 import Link from "next/link";
+import { type ReactElement } from "react";
 
 export default function Icon({
   children,
   to,
 }: {
-  children: JSX.Element;
+  children: ReactElement;
   to: string;
 }) {
   return (
