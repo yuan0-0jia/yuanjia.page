@@ -16,7 +16,8 @@ export async function getProjects() {
   const { data, error } = await supabase.from("projects").select("*");
 
   if (error) {
-    throw new Error("Projects could not be loaded");
+    console.error("Projects could not be loaded:", error);
+    return [];
   }
 
   return data;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import Button from "./Button";
 
 function getMicrolinkScreenshot(url: string) {
@@ -41,15 +41,19 @@ export default function Project({
     ? getMicrolinkScreenshot(previewUrl)
     : null;
 
-  const [ready, setReady] = useState(!imageSrc);
+  const [imgLoaded, setImgLoaded] = useState(false);
+
+  const imgRef = useCallback((el: HTMLImageElement | null) => {
+    if (el?.complete && el.naturalWidth > 0) setImgLoaded(true);
+  }, []);
+
+  const ready = imageSrc ? imgLoaded : true;
 
   return (
     <section
       className={`flex flex-col ${
         reverse ? "md:flex-row-reverse" : "md:flex-row"
-      } my-8 md:my-12 justify-center items-center gap-6 md:gap-10 lg:gap-14 max-w-6xl mx-auto px-4 md:px-12 card-hover p-6 md:p-8 bg-sepia-700/40 dark:bg-sepia-800/50 border border-sepia-600/30 dark:border-sepia-700/30 rounded-sm transition-opacity duration-500 ${
-        ready ? "opacity-100" : "opacity-0"
-      }`}
+      } my-8 md:my-12 justify-center items-center gap-6 md:gap-10 lg:gap-14 max-w-6xl mx-auto px-4 md:px-12 card-hover p-6 md:p-8 bg-sepia-700/40 dark:bg-sepia-800/50 border border-sepia-600/30 dark:border-sepia-700/30 rounded-sm transition-opacity duration-500 ${ready ? "opacity-100" : "opacity-0"}`}
     >
       {/* Content */}
       <div className="max-w-md text-center md:text-left">
@@ -72,9 +76,10 @@ export default function Project({
         <div className="w-full md:w-auto md:max-w-[500px] aspect-video img-vintage rounded-sm overflow-hidden border border-sepia-600/30">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
+            ref={imgRef}
             alt={header}
             src={imageSrc}
-            onLoad={() => setReady(true)}
+            onLoad={() => setImgLoaded(true)}
             className="w-full h-full object-cover"
             fetchPriority={priority ? "high" : undefined}
           />
