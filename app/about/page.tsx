@@ -6,6 +6,9 @@ export const metadata = {
   title: "About",
   description:
     "Learn more about Yuan Jia — software engineer and photographer based in south bay.",
+  alternates: {
+    canonical: "/about",
+  },
 };
 
 export const revalidate = 3600;

@@ -26,9 +26,6 @@ const lora = Lora({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://yuanjia.page"),
-  alternates: {
-    canonical: "/",
-  },
   title: { template: "%s - Yuan Jia", default: "Yuan Jia" },
   description:
     "Personal site of Yuan Jia — software engineer, photographer, and creative based in Santa Cruz.",

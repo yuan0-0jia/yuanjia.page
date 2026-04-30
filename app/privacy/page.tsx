@@ -1,5 +1,8 @@
 export const metadata = {
   title: "Privacy",
+  alternates: {
+    canonical: "/privacy",
+  },
 };
 
 export const dynamic = "force-static";

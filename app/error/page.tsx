@@ -8,11 +8,7 @@ export default function Error() {
   const error = searchParams.get("error");
 
   return (
-    <>
-      <head>
-        <meta name="robots" content="noindex, nofollow" />
-      </head>
-      <main className="flex flex-col flex-auto content-center justify-center items-center text-center px-4">
+    <main className="flex flex-col flex-auto content-center justify-center items-center text-center px-4">
       <div>
         <div className="font-typewriter text-4xl text-sepia-300 dark:text-sepia-700 mb-4">
           ✕
@@ -33,6 +29,5 @@ export default function Error() {
         </Link>
       </div>
     </main>
-    </>
   );
 }
