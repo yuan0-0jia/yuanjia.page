@@ -3,9 +3,10 @@ import { Suspense } from "react";
 import EditableAvatar from "./_components/EditableAvatar";
 import {
   FaArrowUpRightFromSquare,
-  FaLinkedin,
-  FaGithub,
   FaEnvelope,
+  FaFileLines,
+  FaGithub,
+  FaLinkedin,
 } from "react-icons/fa6";
 import FlickrPhotos from "./_components/FlickrPhotos";
 import Projects from "./_components/Projects";
@@ -57,6 +58,7 @@ export default async function Home() {
                     href="https://www.linkedin.com/in/yuanjia1/"
                     target="_blank"
                     rel="noopener noreferrer"
+                    aria-label="LinkedIn"
                     className="text-sepia-500 dark:text-sepia-400 hover:text-sepia-700 dark:hover:text-sepia-300 transition-colors"
                   >
                     <FaLinkedin className="w-4 h-4" />
@@ -67,6 +69,7 @@ export default async function Home() {
                     href="https://github.com/yuan0-0jia"
                     target="_blank"
                     rel="noopener noreferrer"
+                    aria-label="GitHub"
                     className="text-sepia-500 dark:text-sepia-400 hover:text-sepia-700 dark:hover:text-sepia-300 transition-colors"
                   >
                     <FaGithub className="w-4 h-4" />
@@ -75,10 +78,20 @@ export default async function Home() {
                 <li>
                   <a
                     href="mailto:hello.yuanjia@gmail.com"
+                    aria-label="Email"
                     className="text-sepia-500 dark:text-sepia-400 hover:text-sepia-700 dark:hover:text-sepia-300 transition-colors"
                   >
                     <FaEnvelope className="w-4 h-4" />
                   </a>
+                </li>
+                <li>
+                  <Link
+                    href="/resume"
+                    aria-label="Resume"
+                    className="text-sepia-500 dark:text-sepia-400 hover:text-sepia-700 dark:hover:text-sepia-300 transition-colors"
+                  >
+                    <FaFileLines className="w-4 h-4" />
+                  </Link>
                 </li>
               </ul>
             </div>

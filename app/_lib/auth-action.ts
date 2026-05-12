@@ -2,6 +2,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
+import type { Resume } from "@/app/resume/data";
 
 export async function login() {
   const supabase = await createClient();
@@ -304,6 +305,30 @@ export async function updateAboutContent(contentJson: unknown) {
 
   revalidatePath("/about");
   revalidatePath("/", "layout");
+}
+
+/**
+ * Replace the resume JSON in Supabase. Auth-gated.
+ * Writes the full resume object as a single JSONB value to the
+ * singleton row (id=0). Revalidates the /resume route on success.
+ */
+export async function updateResumeData(resume: Resume) {
+  const { data, error } = await getUser();
+  if (error || !data?.user) throw new Error("You must be logged in");
+
+  const supabase = await createClient();
+
+  const { error: updateError } = await supabase
+    .from("resume")
+    .update({ data: resume })
+    .eq("id", 0);
+
+  if (updateError) {
+    console.error(updateError);
+    throw new Error("Resume could not be updated");
+  }
+
+  revalidatePath("/resume");
 }
 
 export async function uploadAboutImage(formData: FormData): Promise<string> {

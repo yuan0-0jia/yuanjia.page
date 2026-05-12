@@ -1,4 +1,6 @@
 import { createClient } from "@/utils/supabase/server";
+import type { Resume } from "@/app/resume/data";
+import { normalizeResume } from "@/app/resume/data";
 
 export async function getAvatar() {
   const supabase = await createClient();
@@ -21,6 +23,38 @@ export async function getProjects() {
   }
 
   return data;
+}
+
+/**
+ * Read the resume JSON from Supabase (singleton row id=0).
+ * Returns null when the row is missing or `data` is null — the caller
+ * is expected to fall back to the static RESUME default from
+ * app/resume/data.ts.
+ */
+export async function getResumeData(): Promise<Resume | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("resume")
+    .select("data")
+    .eq("id", 0)
+    .single();
+
+  if (error) {
+    // Both of these are "expected on first run" states — fall back silently.
+    //   PGRST116 — single() returned no rows (table exists but id=0 missing)
+    //   PGRST205 — table missing from PostgREST schema cache
+    if (error.code === "PGRST205") {
+      console.warn(
+        "[resume] table not yet created — run app/resume/MIGRATION.sql in Supabase to enable editing. Falling back to static data."
+      );
+    } else if (error.code !== "PGRST116") {
+      console.error("Resume could not be loaded:", error);
+    }
+    return null;
+  }
+
+  const raw = (data?.data as Resume | null) ?? null;
+  return raw ? normalizeResume(raw) : null;
 }
 
 export async function getAboutContent() {

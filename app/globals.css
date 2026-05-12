@@ -120,6 +120,84 @@
 }
 
 @layer components {
+  /* ===========================================================
+     Resume type scale — single source of truth for resume page
+     typography. Each class bundles font + size + line-height +
+     letter-spacing + transform + weight for one text role.
+     Adjust here, not in JSX.
+     ----------------------------------------------------------- */
+
+  /* DISPLAY — the name at the top. Mobile 40px → desktop 48px. */
+  .resume-display {
+    font-family: var(--font-typewriter), Courier, monospace;
+    font-size: 2.5rem;
+    line-height: 1.05;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-weight: 400;
+  }
+  @media (min-width: 768px) {
+    .resume-display {
+      font-size: 3rem;
+    }
+  }
+
+  /* EYEBROW — section headings, stack lists, skills category labels. */
+  .resume-eyebrow {
+    font-family: var(--font-typewriter), Courier, monospace;
+    font-size: 0.6875rem;
+    line-height: 1.6;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    font-weight: 400;
+  }
+
+  /* KICKER — project / entry names. Heavier, slightly larger. */
+  .resume-kicker {
+    font-family: var(--font-typewriter), Courier, monospace;
+    font-size: 0.9375rem;
+    line-height: 1.3;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+
+  /* META — contact items, period dates, tagline, stack lists.
+     Lora at 13px so recruiter-skim text reads naturally. The typewriter
+     stays reserved for branded moments (display + eyebrow + kicker). */
+  .resume-meta {
+    font-family: var(--font-serif), Georgia, serif;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    font-weight: 400;
+  }
+
+  /* MICRO — last-updated line, location, byline-style smallest UI text.
+     Lora italic so it reads as supporting metadata, not a stamped label. */
+  .resume-micro {
+    font-family: var(--font-serif), Georgia, serif;
+    font-size: 0.75rem;
+    line-height: 1.5;
+    font-style: italic;
+    font-weight: 400;
+  }
+
+  /* BODY — bullets, descriptions, degree titles, summaries. */
+  .resume-body {
+    font-family: var(--font-serif), Georgia, serif;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    font-weight: 400;
+  }
+
+  /* EMPHASIS — school names, primary content callouts. */
+  .resume-emphasis {
+    font-family: var(--font-serif), Georgia, serif;
+    font-size: 1rem;
+    line-height: 1.4;
+    font-weight: 700;
+  }
+
   /* Typewriter heading style */
   .typewriter-heading {
     font-family: var(--font-typewriter), Courier, monospace;
