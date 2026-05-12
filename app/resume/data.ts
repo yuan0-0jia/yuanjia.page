@@ -178,8 +178,6 @@ export function normalizeResume(resume: Resume): Resume {
   const asOptString = (v: unknown): string | undefined =>
     typeof v === "string" ? v : undefined;
   const asArray = <T>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : []);
-  const asStringArray = (v: unknown): string[] =>
-    Array.isArray(v) ? v.filter((s) => typeof s === "string") : [];
 
   const r = resume as unknown as Record<string, unknown>;
 
@@ -202,10 +200,28 @@ export function normalizeResume(resume: Resume): Resume {
     education: asArray<EducationItem>(r.education),
     skills: asArray<SkillCategory>(r.skills).map((s) => ({
       name: asString((s as unknown as Record<string, unknown>).name),
-      items: asStringArray((s as unknown as Record<string, unknown>).items),
+      items: asCleanStringArray(
+        (s as unknown as Record<string, unknown>).items
+      ),
     })),
     projects: asArray<Entry>(r.projects).map(normalizeEntry),
   };
+}
+
+/**
+ * Filter an unknown value to a clean string[]: keep only strings, trim
+ * whitespace, drop empties. Empty lines accumulate in the editor's
+ * textarea-list fields while typing (we keep them in state so Enter
+ * keypresses work); this is where they get cleaned up on the way back
+ * into the renderer.
+ */
+function asCleanStringArray(v: unknown): string[] {
+  return Array.isArray(v)
+    ? v
+        .filter((s): s is string => typeof s === "string")
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0)
+    : [];
 }
 
 function normalizeEntry(e: unknown): Entry {
@@ -222,15 +238,9 @@ function normalizeEntry(e: unknown): Entry {
       r.repo && typeof r.repo === "object"
         ? (r.repo as Entry["repo"])
         : undefined,
-    stack: Array.isArray(r.stack)
-      ? (r.stack as unknown[]).filter((s): s is string => typeof s === "string")
-      : [],
+    stack: asCleanStringArray(r.stack),
     summary: typeof r.summary === "string" ? r.summary : undefined,
-    bullets: Array.isArray(r.bullets)
-      ? (r.bullets as unknown[]).filter(
-          (s): s is string => typeof s === "string"
-        )
-      : [],
+    bullets: asCleanStringArray(r.bullets),
   };
 }
 
@@ -260,11 +270,7 @@ function normalizeCustomSections(raw: unknown): CustomSection[] | undefined {
         id,
         shape: "bullets",
         title,
-        bullets: Array.isArray(r.bullets)
-          ? (r.bullets as unknown[]).filter(
-              (b): b is string => typeof b === "string"
-            )
-          : [],
+        bullets: asCleanStringArray(r.bullets),
       });
     } else if (r.shape === "entries") {
       out.push({
@@ -285,11 +291,7 @@ function normalizeCustomSections(raw: unknown): CustomSection[] | undefined {
               const cr = (c ?? {}) as Record<string, unknown>;
               return {
                 name: typeof cr.name === "string" ? cr.name : "",
-                items: Array.isArray(cr.items)
-                  ? (cr.items as unknown[]).filter(
-                      (i): i is string => typeof i === "string"
-                    )
-                  : [],
+                items: asCleanStringArray(cr.items),
               };
             })
           : [],
@@ -403,7 +405,7 @@ export const RESUME: Resume = {
   projects: [
     {
       name: "Flyer",
-      title: "Platform Engineer (1 of 6 contributors)",
+      title: "Platform Engineer (Co-author on a 5-person team)",
       period: "2026 – Present",
       link: { label: "joinflyer.com", href: "https://joinflyer.com" },
       stack: [
@@ -421,7 +423,9 @@ export const RESUME: Resume = {
         "**Restricted the CI deploy SSH key with an `authorized_keys` forced-command wrapper** — strict `IMAGE_TAG` regex, op allowlist, audited invocations. A leaked key can no longer obtain a shell.",
         "**Built a schema-versioned deploy state machine in Bash** holding one remote `flock` for the full deploy lifecycle plus a `peek_claim` gate on the drift CI job — structurally impossible for two prod-mutating ops to interleave.",
         "**Shipped automated daily PostgreSQL → S3 backups** with `pg_dump | gzip` integrity checks, 14-day lifecycle, and EC2 instance-profile auth (no static AWS keys); executed a live restore drill from prod backup.",
-        "**Replaced the app's PostgreSQL superuser connection with a least-privilege role** via idempotent `public`-schema ownership transfer — shrinking SQL-injection blast radius from full DBA access to only the data the app needs.",
+        "**Migrated PostgreSQL from a superuser connection to a least-privilege role** via idempotent `public`-schema ownership transfer — shrinking SQL-injection blast radius from full DBA access to only the data the app needs.",
+        "**Tightened CI:** SSH-based prod-drift check, `shellcheck` + `bats` coverage on every infra script, and decoupled ops-class workflows from hosted runners onto a self-hosted homelab.",
+        "**Led the live production domain cutover** from `heywhatsup.app` to `joinflyer.com`: DNS, dual Let's Encrypt certs, host-based 301s, Resend DKIM swap, NextAuth + Google OAuth callback updates, and a PWA service-worker cache-name bump.",
       ],
     },
     {
@@ -439,8 +443,7 @@ export const RESUME: Resume = {
       summary:
         "Two-node k3s cluster on repurposed Intel hardware (Dell desktop + Mac mini reflashed from macOS to Ubuntu, with additional MacBooks reflashed and staged to join); hosts an ephemeral GitHub Actions runner pool for Flyer.",
       bullets: [
-        "**Built a 2-node k3s cluster** (control plane on the Dell desktop, worker on the Mac mini) on Ubuntu 24.04 + `containerd`; more reflashed Intel MacBooks staged to join.",
-        "**Deployed Actions Runner Controller (ARC)** with a runner scale set labeled `homelab` — each CI job spawns an ephemeral pod (clean filesystem per job, zero idle compute when the queue is empty). Hosts ops-class CI for Flyer.",
+        "**Built a 2-node k3s cluster** on repurposed Intel hardware (Dell desktop + Mac mini, Ubuntu 24.04 + `containerd`) running **Actions Runner Controller (ARC)** with a runner scale set labeled `homelab` — each CI job spawns an ephemeral pod (clean filesystem per job, zero idle compute when the queue is empty). Hosts ops-class CI for Flyer.",
       ],
     },
     {
@@ -464,8 +467,7 @@ export const RESUME: Resume = {
         "Empirical study of whether code style affects AI coding-agent bug-fix performance.",
       bullets: [
         "**Designed and ran a 1,920-trial benchmark** measuring whether code style affects AI coding-agent bug-fix rates — 4 Python projects (~20k LOC, 3,039 tests), 6 style variants, 14 mutation types, 2 evaluation modes.",
-        "**Built a tree-sitter AST transformation framework** that rewrites a codebase across naming / formatting / documentation styles while leaving external API references intact — whitelist-only renames, `pytest.mark.parametrize` string-argument syncing.",
-        "**Authored a multi-agent benchmark harness** with pluggable adapters for Claude Code, Codex CLI, and Gemini CLI — rate-limit detection with checkpoint resumption, manifest mode for byte-identical input across agents, process-group termination on timeout.",
+        "**Built the supporting infrastructure:** a tree-sitter AST transformation framework (whitelist renames, `pytest.mark.parametrize` syncing) and a multi-agent harness with pluggable Claude Code / Codex CLI / Gemini CLI adapters — rate-limit detection with checkpoint resumption, manifest mode for byte-identical input across agents, process-group termination on timeout.",
         "**Headline finding:** code style had no statistically significant effect on fix rate (p = 0.998; 1pp spread). Repository difficulty (28pp spread) and mutation type (29pp spread) dominated.",
       ],
     },

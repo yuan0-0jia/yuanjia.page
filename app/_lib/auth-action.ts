@@ -318,14 +318,28 @@ export async function updateResumeData(resume: Resume) {
 
   const supabase = await createClient();
 
-  const { error: updateError } = await supabase
+  // .select() asks for the updated rows back so we can see if RLS silently
+  // filtered the write. Without this the call returns success even when 0
+  // rows were actually changed.
+  const { data: updated, error: updateError } = await supabase
     .from("resume")
     .update({ data: resume })
-    .eq("id", 0);
+    .eq("id", 0)
+    .select();
 
   if (updateError) {
-    console.error(updateError);
-    throw new Error("Resume could not be updated");
+    console.error("[resume] update error:", updateError);
+    throw new Error(`Resume could not be updated: ${updateError.message}`);
+  }
+
+  if (!updated || updated.length === 0) {
+    console.error(
+      "[resume] UPDATE affected 0 rows — RLS rejected the write or row id=0 doesn't exist. Authenticated user:",
+      data.user.email
+    );
+    throw new Error(
+      "Resume save matched 0 rows — your auth session may not have write permission. Check RLS policies and that you're logged in to the correct Supabase project."
+    );
   }
 
   revalidatePath("/resume");

@@ -1,14 +1,24 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import {
   FaArrowDown,
+  FaArrowLeft,
   FaArrowUp,
   FaCheck,
   FaCircleExclamation,
+  FaEye,
   FaFloppyDisk,
   FaPlus,
   FaTrash,
+  FaTriangleExclamation,
   FaXmark,
 } from "react-icons/fa6";
 import { updateResumeData } from "@/app/_lib/auth-action";
@@ -25,8 +35,12 @@ import {
   DEFAULT_SECTION_TITLES,
   isBuiltInKey,
   newCustomSectionId,
+  normalizeResume,
   resolveSectionOrder,
 } from "../data";
+import { estimatePageFit, type PageFitStatus } from "../_lib/estimatePageFit";
+import ResumeScreen from "./ResumeScreen";
+import ResumePrint from "./ResumePrint";
 
 // ---------------------------------------------------------------------------
 // Editor root
@@ -42,6 +56,9 @@ export default function ResumeEditor({
   const [pending, startTransition] = useTransition();
   const [status, setStatus] = useState<"idle" | "saved" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [previewMode, setPreviewMode] = useState<"off" | "screen" | "print">(
+    "off"
+  );
 
   const patch = (p: Partial<Resume>) => {
     setStatus("idle");
@@ -77,6 +94,23 @@ export default function ResumeEditor({
     return () => window.removeEventListener("beforeunload", handler);
   }, [dirty]);
 
+  // Print-page fit estimate. Recomputed on every edit; cheap heuristic.
+  // Run on the normalized resume so empty lines etc. don't inflate the
+  // estimate while the user is still typing.
+  const normalized = useMemo(() => normalizeResume(resume), [resume]);
+  const pageFit = useMemo(() => estimatePageFit(normalized), [normalized]);
+
+  if (previewMode !== "off") {
+    return (
+      <PreviewView
+        resume={normalized}
+        mode={previewMode}
+        onModeChange={setPreviewMode}
+        onBack={() => setPreviewMode("off")}
+      />
+    );
+  }
+
   return (
     <div className="mx-4 md:mx-12 lg:mx-20 my-12 flex flex-col items-center p-4">
       <div className="max-w-3xl w-full space-y-12">
@@ -107,6 +141,9 @@ export default function ResumeEditor({
           status={status}
           errorMsg={errorMsg}
           onSave={onSave}
+          onPreview={() => setPreviewMode("screen")}
+          pageFitStatus={pageFit.status}
+          pageFitPages={pageFit.pages}
         />
       </div>
     </div>
@@ -637,10 +674,9 @@ function EntriesListEditor({
               value={p.stack.join("\n")}
               onChange={(v) =>
                 updateEntry(i, {
-                  stack: v
-                    .split("\n")
-                    .map((s) => s.trim())
-                    .filter(Boolean),
+                  // Preserve raw lines (including empties) so Enter keypresses
+                  // work. The normalizer filters empties on read.
+                  stack: v.split("\n"),
                 })
               }
             />
@@ -658,10 +694,7 @@ function EntriesListEditor({
               value={p.bullets.join("\n")}
               onChange={(v) =>
                 updateEntry(i, {
-                  bullets: v
-                    .split("\n")
-                    .map((s) => s.trim())
-                    .filter(Boolean),
+                  bullets: v.split("\n"),
                 })
               }
             />
@@ -716,10 +749,7 @@ function CategoriesListEditor({
                 value={c.items.join("\n")}
                 onChange={(v) =>
                   updateCategory(i, {
-                    items: v
-                      .split("\n")
-                      .map((s) => s.trim())
-                      .filter(Boolean),
+                    items: v.split("\n"),
                   })
                 }
               />
@@ -936,10 +966,7 @@ function CustomSectionEditor({
           onChange={(v) =>
             onChange({
               ...section,
-              bullets: v
-                .split("\n")
-                .map((s) => s.trim())
-                .filter(Boolean),
+              bullets: v.split("\n"),
             })
           }
         />
@@ -1000,44 +1027,311 @@ function SaveBar({
   status,
   errorMsg,
   onSave,
+  onPreview,
+  pageFitStatus,
+  pageFitPages,
 }: {
   pending: boolean;
   status: "idle" | "saved" | "error";
   errorMsg: string | null;
   onSave: () => void;
+  onPreview: () => void;
+  pageFitStatus: PageFitStatus;
+  pageFitPages: number;
 }) {
   return (
     <div className="sticky bottom-4 z-10 flex justify-center">
-      <div className="bg-cream/95 dark:bg-warmGray-900/95 backdrop-blur-sm border border-sepia-300 dark:border-sepia-700 rounded-sm px-4 py-3 shadow-md flex items-center gap-4">
-        <button
-          type="button"
-          onClick={onSave}
-          disabled={pending}
-          className="font-typewriter text-sm tracking-wider text-sepia-700 dark:text-sepia-300 hover:text-sepia-900 dark:hover:text-cream border border-sepia-300 dark:border-sepia-700 hover:border-sepia-500 px-4 py-2 rounded-sm transition-colors inline-flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+      <div className="bg-cream/95 dark:bg-warmGray-900/95 backdrop-blur-sm border border-sepia-300 dark:border-sepia-700 rounded-sm shadow-md flex flex-col">
+        {pageFitStatus !== "ok" && (
+          <PageFitBanner status={pageFitStatus} pages={pageFitPages} />
+        )}
+        <div className="px-4 py-3 flex items-center justify-center gap-3">
+          <button
+            type="button"
+            onClick={onPreview}
+            className="font-typewriter text-sm tracking-wider text-sepia-700 dark:text-sepia-300 hover:text-sepia-900 dark:hover:text-cream border border-sepia-300 dark:border-sepia-700 hover:border-sepia-500 px-4 py-2 rounded-sm transition-colors inline-flex items-center gap-2"
+          >
+            <FaEye className="w-3.5 h-3.5" />
+            Preview
+          </button>
+          <button
+            type="button"
+            onClick={onSave}
+            disabled={pending}
+            className="font-typewriter text-sm tracking-wider text-sepia-700 dark:text-sepia-300 hover:text-sepia-900 dark:hover:text-cream border border-sepia-300 dark:border-sepia-700 hover:border-sepia-500 px-4 py-2 rounded-sm transition-colors inline-flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <FaFloppyDisk className="w-3.5 h-3.5" />
+            {pending ? "Saving…" : "Save changes"}
+          </button>
+          {status === "saved" && (
+            <span className="font-typewriter text-xs text-green-700 dark:text-green-400 tracking-wider inline-flex items-center gap-1.5">
+              <FaCheck className="w-3 h-3" />
+              Saved
+            </span>
+          )}
+          {status === "error" && (
+            <span className="font-typewriter text-xs text-red-700 dark:text-red-400 tracking-wider inline-flex items-center gap-1.5">
+              <FaCircleExclamation className="w-3 h-3" />
+              {errorMsg ?? "Save failed"}
+              <button
+                type="button"
+                onClick={onSave}
+                disabled={pending}
+                className="underline underline-offset-2 hover:text-red-900 dark:hover:text-red-300 disabled:opacity-50 ml-1"
+              >
+                Retry
+              </button>
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PageFitBanner({
+  status,
+  pages,
+}: {
+  status: PageFitStatus;
+  pages: number;
+}) {
+  if (status === "ok") return null;
+  const tight = status === "tight";
+  const message = tight
+    ? `Approaching one-page limit (~${(pages * 100).toFixed(0)}% of usable height).`
+    : `Estimated ${pages.toFixed(1)} pages — print will overflow.`;
+  const colorClasses = tight
+    ? "text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-700 bg-amber-50/60 dark:bg-amber-950/40"
+    : "text-red-700 dark:text-red-400 border-red-300 dark:border-red-700 bg-red-50/60 dark:bg-red-950/40";
+  return (
+    <div
+      className={`px-4 py-2 border-b ${colorClasses} font-typewriter text-[11px] tracking-wider inline-flex items-center gap-2 rounded-t-sm`}
+      role="status"
+    >
+      <FaTriangleExclamation className="w-3 h-3" />
+      <span>{message}</span>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Preview view — sticky bar at the top with a Screen / Print toggle and a
+// Back-to-editor button; content renders either the on-brand screen layout
+// or the print layout inside a paper-shaped wrapper.
+// ---------------------------------------------------------------------------
+
+function PreviewView({
+  resume,
+  mode,
+  onModeChange,
+  onBack,
+}: {
+  resume: Resume;
+  mode: "screen" | "print";
+  onModeChange: (m: "screen" | "print") => void;
+  onBack: () => void;
+}) {
+  return (
+    <>
+      <div className="sticky top-16 z-20 flex justify-center mt-6 mx-4">
+        <div className="bg-cream/95 dark:bg-warmGray-900/95 backdrop-blur-sm border border-sepia-300 dark:border-sepia-700 rounded-sm shadow-md px-3 py-2 inline-flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onBack}
+            className="font-typewriter text-xs uppercase tracking-widest text-sepia-700 dark:text-sepia-300 hover:text-sepia-900 dark:hover:text-cream inline-flex items-center gap-1.5 px-2 py-1"
+          >
+            <FaArrowLeft className="w-3 h-3" />
+            Back to editor
+          </button>
+          <span className="w-px h-4 bg-sepia-300 dark:bg-sepia-700" aria-hidden />
+          <span className="font-typewriter text-[10px] uppercase tracking-widest text-sepia-500 dark:text-sepia-400">
+            View
+          </span>
+          <div className="inline-flex border border-sepia-300 dark:border-sepia-700 rounded-sm overflow-hidden">
+            {(["screen", "print"] as const).map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => onModeChange(m)}
+                className={`font-typewriter text-[10px] uppercase tracking-widest px-3 py-1 transition-colors ${
+                  mode === m
+                    ? "bg-sepia-200 dark:bg-sepia-700 text-sepia-900 dark:text-cream"
+                    : "text-sepia-600 dark:text-sepia-400 hover:bg-sepia-100 dark:hover:bg-sepia-800"
+                }`}
+              >
+                {m}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {mode === "screen" && <ResumeScreen resume={resume} />}
+      {mode === "print" && <PrintPreview resume={resume} />}
+    </>
+  );
+}
+
+/**
+ * Mimic the print engine's `page-break-inside: avoid` and
+ * `page-break-after: avoid` behavior on screen.
+ *
+ * Print breaks happen at the **usable** page bottom — that is, the page
+ * height minus the bottom margin — not at the full sheet height. An
+ * element whose bottom would extend into the bottom-margin band of
+ * page N gets pushed to start at the usable-content top of page N+1.
+ *
+ * Coordinates are all in CSS px relative to the content element's top.
+ * Page N starts at content-y = N * pageStride, where pageStride is the
+ * full sheet height plus the visual gap between page frames.
+ */
+function paginateForPrintPreview(
+  content: HTMLElement,
+  pageStridePx: number,
+  topMarginPx: number,
+  usableBottomPx: number
+): void {
+  // Reset previous shifts so re-runs are idempotent.
+  content.querySelectorAll<HTMLElement>("[data-pagination-shift]").forEach(
+    (el) => {
+      el.style.marginTop = "";
+      el.removeAttribute("data-pagination-shift");
+    }
+  );
+
+  const contentTop = content.getBoundingClientRect().top;
+  const topOf = (el: HTMLElement) =>
+    el.getBoundingClientRect().top - contentTop;
+  const bottomOf = (el: HTMLElement) =>
+    el.getBoundingClientRect().bottom - contentTop;
+
+  // page-break-inside: avoid — push the whole element to the next page if
+  // its bottom would extend past the usable-content bottom of its page.
+  const keepWhole = Array.from(
+    content.querySelectorAll<HTMLElement>(
+      ".resume-print__edu, .resume-print__bullets li"
+    )
+  );
+  for (const el of keepWhole) {
+    const top = topOf(el);
+    const bottom = bottomOf(el);
+    if (bottom <= top) continue;
+    const pageOfTop = Math.max(0, Math.floor(top / pageStridePx));
+    const usableBottom = pageOfTop * pageStridePx + usableBottomPx;
+    if (bottom > usableBottom) {
+      const newTop = (pageOfTop + 1) * pageStridePx + topMarginPx;
+      const gap = newTop - top;
+      if (gap > 0) {
+        el.style.marginTop = `${gap}px`;
+        el.setAttribute("data-pagination-shift", String(gap));
+      }
+    }
+  }
+
+  // page-break-after: avoid — if a section-title sits on page N but its
+  // first following sibling now lands on page N+1, push the title down so
+  // the pair stays together.
+  const keepWithNext = Array.from(
+    content.querySelectorAll<HTMLElement>(".resume-print__section-title")
+  );
+  for (const el of keepWithNext) {
+    const next = el.nextElementSibling as HTMLElement | null;
+    if (!next) continue;
+    const elPage = Math.floor(topOf(el) / pageStridePx);
+    const nextPage = Math.floor(topOf(next) / pageStridePx);
+    if (elPage !== nextPage) {
+      const newTop = nextPage * pageStridePx + topMarginPx;
+      const gap = newTop - topOf(el);
+      if (gap > 0) {
+        el.style.marginTop = `${gap}px`;
+        el.setAttribute("data-pagination-shift", String(gap));
+      }
+    }
+  }
+}
+
+function PrintPreview({ resume }: { resume: Resume }) {
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [pageCount, setPageCount] = useState(1);
+
+  // Letter dimensions in CSS px (96 dpi). Margins mirror @page in
+  // resume.css: 0.35in uniform. pageStride includes the visual gap
+  // between page frames so coordinates line up.
+  const PAGE_HEIGHT_IN = 11;
+  const PAGE_HEIGHT_PX = PAGE_HEIGHT_IN * 96;
+  const TOP_MARGIN_PX = 0.35 * 96;
+  const BOTTOM_MARGIN_PX = 0.35 * 96;
+  const GAP_PX = 28;
+  const PAGE_STRIDE_PX = PAGE_HEIGHT_PX + GAP_PX;
+  const USABLE_BOTTOM_PX = PAGE_HEIGHT_PX - BOTTOM_MARGIN_PX;
+
+  useLayoutEffect(() => {
+    const el = contentRef.current;
+    if (!el) return;
+    const reflowAndMeasure = () => {
+      paginateForPrintPreview(
+        el,
+        PAGE_STRIDE_PX,
+        TOP_MARGIN_PX,
+        USABLE_BOTTOM_PX
+      );
+      const h = el.scrollHeight;
+      const n = Math.max(1, Math.ceil(h / PAGE_STRIDE_PX));
+      setPageCount((prev) => (prev === n ? prev : n));
+    };
+    reflowAndMeasure();
+    const observer = new ResizeObserver(reflowAndMeasure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [
+    resume,
+    PAGE_STRIDE_PX,
+    TOP_MARGIN_PX,
+    USABLE_BOTTOM_PX,
+  ]);
+
+  return (
+    <div
+      className="resume-print-preview"
+      style={{
+        minHeight: `calc(${pageCount * PAGE_HEIGHT_IN}in + ${
+          (pageCount - 1) * GAP_PX
+        }px)`,
+      }}
+    >
+      {/* Background: one Letter-proportioned sheet per measured page. */}
+      {Array.from({ length: pageCount }).map((_, i) => (
+        <div
+          key={i}
+          className="resume-print-preview__page-frame"
+          style={{
+            top: `calc(${i * PAGE_HEIGHT_IN}in + ${i * GAP_PX}px)`,
+          }}
+          aria-hidden
         >
-          <FaFloppyDisk className="w-3.5 h-3.5" />
-          {pending ? "Saving…" : "Save changes"}
-        </button>
-        {status === "saved" && (
-          <span className="font-typewriter text-xs text-green-700 dark:text-green-400 tracking-wider inline-flex items-center gap-1.5">
-            <FaCheck className="w-3 h-3" />
-            Saved
+          <span
+            style={{
+              position: "absolute",
+              bottom: "0.2in",
+              right: "0.4in",
+              fontFamily:
+                "ui-monospace, 'SF Mono', Menlo, Consolas, monospace",
+              fontSize: 10,
+              textTransform: "uppercase",
+              letterSpacing: "0.2em",
+              color: "#c97c5d",
+              pointerEvents: "none",
+            }}
+          >
+            page {i + 1} of {pageCount}
           </span>
-        )}
-        {status === "error" && (
-          <span className="font-typewriter text-xs text-red-700 dark:text-red-400 tracking-wider inline-flex items-center gap-1.5">
-            <FaCircleExclamation className="w-3 h-3" />
-            {errorMsg ?? "Save failed"}
-            <button
-              type="button"
-              onClick={onSave}
-              disabled={pending}
-              className="underline underline-offset-2 hover:text-red-900 dark:hover:text-red-300 disabled:opacity-50 ml-1"
-            >
-              Retry
-            </button>
-          </span>
-        )}
+        </div>
+      ))}
+
+      {/* Foreground: continuous content flow across the page frames. */}
+      <div ref={contentRef} className="resume-print-preview__content">
+        <ResumePrint resume={resume} />
       </div>
     </div>
   );

@@ -3,32 +3,100 @@
    author's name + contact, right side gets the page counter. */
 @page {
   size: letter;
-  margin: 0.4in 0.4in 0.5in 0.4in;
+  margin: 0.35in;
 
-  @bottom-left {
-    content: "Yuan Jia · hello.yuanjia@gmail.com";
-    font-family: Georgia, "Iowan Old Style", "Times New Roman", serif;
-    font-size: 8pt;
-    color: #666;
-    padding-top: 10pt;
+  /* Explicitly empty every margin box so Chromium-based browsers don't
+     auto-fill them with URL / date / page-number when the user has
+     "Headers and footers" enabled in the print dialog. Safari follows
+     the user setting more strictly; if defaults still show there, users
+     need to uncheck "Print headers and footers" in their print dialog. */
+  @top-left-corner {
+    content: "";
   }
-
+  @top-left {
+    content: "";
+  }
+  @top-center {
+    content: "";
+  }
+  @top-right {
+    content: "";
+  }
+  @top-right-corner {
+    content: "";
+  }
+  @bottom-left-corner {
+    content: "";
+  }
+  @bottom-left {
+    content: "";
+  }
+  @bottom-center {
+    content: "";
+  }
   @bottom-right {
-    content: counter(page) " / " counter(pages);
-    font-family: Georgia, "Iowan Old Style", "Times New Roman", serif;
-    font-size: 8pt;
-    color: #666;
-    padding-top: 10pt;
+    content: "";
+  }
+  @bottom-right-corner {
+    content: "";
   }
 }
 
 /* ------------------------------------------------------------------ */
-/* Screen-only: hide the print-only layout                            */
+/* Screen-only: hide the print-only layout UNLESS it's inside a
+   preview wrapper (the editor's Preview / Print tab uses this to
+   render the print layout on screen).                                */
 /* ------------------------------------------------------------------ */
 @media screen {
   .resume-print {
     display: none;
   }
+  .resume-print-preview .resume-print {
+    display: block;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Print-layout preview — visualizes pagination as a stack of
+   page-shaped frames with visible gaps between them. Content flows
+   continuously across the frames. Where content lands relative to a
+   frame's edge is where the printer's page break will fall.          */
+/* ------------------------------------------------------------------ */
+.resume-print-preview {
+  position: relative;
+  width: 8.5in;
+  margin: 1.5rem auto 4rem;
+}
+
+/* Each page frame is a positioned background — a sheet of white paper
+   with a drop shadow. Width is the wrapper's 8.5in and height is
+   exactly 11in, locking the aspect ratio to Letter. aspect-ratio is
+   added as a sanity assertion in case any ancestor stretches us. */
+.resume-print-preview__page-frame {
+  position: absolute;
+  left: 0;
+  right: 0;
+  width: 8.5in;
+  height: 11in;
+  aspect-ratio: 8.5 / 11;
+  background: white;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.18);
+}
+
+/* Content sits above the frames in the z-stack and flows continuously
+   through them. The 0.4in/0.5in padding mirrors the print margins so
+   text placement on screen matches the printed PDF. */
+.resume-print-preview__content {
+  position: relative;
+  z-index: 1;
+  padding: 0.35in;
+}
+
+/* Hide summaries in the preview to match the printed PDF (which also
+   hides them via @media print). */
+.resume-print-preview__content .resume-print__summary {
+  display: none;
 }
 
 /* ------------------------------------------------------------------ */
