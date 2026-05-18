@@ -91,14 +91,14 @@ export type Resume = {
 export const DEFAULT_SECTION_TITLES: Record<SectionKey, string> = {
   education: "Education",
   skills: "Skills",
-  projects: "Projects",
+  projects: "Experience",
 };
 
 // Default rendering order — used when sectionOrder is missing.
 export const DEFAULT_SECTION_ORDER: SectionKey[] = [
-  "education",
-  "skills",
   "projects",
+  "skills",
+  "education",
 ];
 
 /** Type guard: tell built-in section keys apart from custom section ids. */
@@ -119,7 +119,7 @@ export function isBuiltInKey(s: string): s is SectionKey {
  */
 export function resolveSectionOrder(
   order: string[] | undefined,
-  customSections: CustomSection[] | undefined
+  customSections: CustomSection[] | undefined,
 ): string[] {
   const known = new Set<string>([
     ...DEFAULT_SECTION_ORDER,
@@ -192,7 +192,7 @@ export function normalizeResume(resume: Resume): Resume {
         : undefined,
     sectionOrder: Array.isArray(r.sectionOrder)
       ? (r.sectionOrder as unknown[]).filter(
-          (s): s is string => typeof s === "string"
+          (s): s is string => typeof s === "string",
         )
       : undefined,
     customSections: normalizeCustomSections(r.customSections),
@@ -201,7 +201,7 @@ export function normalizeResume(resume: Resume): Resume {
     skills: asArray<SkillCategory>(r.skills).map((s) => ({
       name: asString((s as unknown as Record<string, unknown>).name),
       items: asCleanStringArray(
-        (s as unknown as Record<string, unknown>).items
+        (s as unknown as Record<string, unknown>).items,
       ),
     })),
     projects: asArray<Entry>(r.projects).map(normalizeEntry),
@@ -250,8 +250,7 @@ function normalizeCustomSections(raw: unknown): CustomSection[] | undefined {
   for (const s of raw) {
     if (!s || typeof s !== "object") continue;
     const r = s as Record<string, unknown>;
-    const id =
-      typeof r.id === "string" && r.id ? r.id : newCustomSectionId();
+    const id = typeof r.id === "string" && r.id ? r.id : newCustomSectionId();
     const title = typeof r.title === "string" ? r.title : "";
 
     // Legacy: shape "projects" -> "entries"
@@ -299,7 +298,7 @@ function normalizeCustomSections(raw: unknown): CustomSection[] | undefined {
     } else {
       // Unknown shape — skip with a warning. Don't propagate to the renderer.
       console.warn(
-        `[resume] dropping custom section with unknown shape: ${String(r.shape)}`
+        `[resume] dropping custom section with unknown shape: ${String(r.shape)}`,
       );
     }
   }
@@ -308,8 +307,8 @@ function normalizeCustomSections(raw: unknown): CustomSection[] | undefined {
 
 export const RESUME: Resume = {
   name: "Yuan Jia",
-  tagline: "Platform / Infrastructure Engineer",
-  location: "Santa Cruz, CA",
+  tagline: "Software Engineer",
+  location: "Santa Clara, CA",
   lastUpdated: "May 2026",
   sectionTitles: { ...DEFAULT_SECTION_TITLES },
   sectionOrder: [...DEFAULT_SECTION_ORDER],
@@ -348,14 +347,13 @@ export const RESUME: Resume = {
       school: "University of California, Santa Cruz",
       period: "2019–2023",
       degree: "Bachelor of Science: Computer Engineering",
-      minor: "Minor: Computer Science",
     },
   ] satisfies EducationItem[],
 
   skills: [
     {
       name: "Languages",
-      items: ["TypeScript", "Python", "JavaScript", "Bash", "C/C++"],
+      items: ["TypeScript", "Python", "Bash", "C/C++"],
     },
     {
       name: "Web",
@@ -392,8 +390,6 @@ export const RESUME: Resume = {
         "tree-sitter",
         "ruff",
         "uv",
-        "shellcheck",
-        "Git",
       ],
     },
     {
@@ -419,13 +415,14 @@ export const RESUME: Resume = {
       summary:
         "Production event platform for college communities; owned the deploy pipeline, security hardening, and disaster recovery.",
       bullets: [
-        "**Built a 3-mode GitHub Actions deploy workflow** with a post-deploy SHA probe and automated rollback from a `.deploy-history` ledger — cutting MTTR for a broken deploy to ~90 seconds.",
-        "**Restricted the CI deploy SSH key with an `authorized_keys` forced-command wrapper** — strict `IMAGE_TAG` regex, op allowlist, audited invocations. A leaked key can no longer obtain a shell.",
-        "**Built a schema-versioned deploy state machine in Bash** holding one remote `flock` for the full deploy lifecycle plus a `peek_claim` gate on the drift CI job — structurally impossible for two prod-mutating ops to interleave.",
-        "**Shipped automated daily PostgreSQL → S3 backups** with `pg_dump | gzip` integrity checks, 14-day lifecycle, and EC2 instance-profile auth (no static AWS keys); executed a live restore drill from prod backup.",
-        "**Migrated PostgreSQL from a superuser connection to a least-privilege role** via idempotent `public`-schema ownership transfer — shrinking SQL-injection blast radius from full DBA access to only the data the app needs.",
-        "**Tightened CI:** SSH-based prod-drift check, `shellcheck` + `bats` coverage on every infra script, and decoupled ops-class workflows from hosted runners onto a self-hosted homelab.",
-        "**Led the live production domain cutover** from `heywhatsup.app` to `joinflyer.com`: DNS, dual Let's Encrypt certs, host-based 301s, Resend DKIM swap, NextAuth + Google OAuth callback updates, and a PWA service-worker cache-name bump.",
+        "**Built a 3-mode GitHub Actions deploy workflow** with post-deploy SHA probe + auto-rollback via a `.deploy-history` ledger — broken-deploy MTTR ~90s.",
+        "**Restricted the CI deploy SSH key with an `authorized_keys` forced-command wrapper** — strict `IMAGE_TAG` regex, op allowlist, audited invocations; a leaked key can't open a shell.",
+        "**Built a schema-versioned deploy state machine in Bash** — one remote `flock` for the full lifecycle + a `peek_claim` gate on drift CI; two prod-mutating ops can't interleave.",
+        "**Shipped daily PostgreSQL → S3 backups** with `pg_dump | gzip` integrity checks, 14-day lifecycle, EC2 instance-profile auth (no static AWS keys); verified via live restore drill from prod.",
+        "**Migrated PostgreSQL from superuser to a least-privilege role** via idempotent `public`-schema ownership transfer — SQL-injection blast radius cut from full DBA to app-scoped data.",
+        "**Hardened CI against supply-chain + drift risks** — SHA-pinned third-party actions, an SSH-based prod-drift check, and `shellcheck` + `bats` coverage on every infra script.",
+        "**Migrated 10 ops + CI + deploy jobs onto self-hosted homelab runner pools** — ephemeral pods inside the Tailscale mesh; only the cross-arch linux/arm64 image build stays hosted (homelab nodes are x86).",
+        "**Led the production domain cutover** from `heywhatsup.app` to `joinflyer.com` — DNS, dual Let's Encrypt certs, host-based 301s, Resend DKIM swap, NextAuth + Google OAuth callbacks, PWA service-worker cache-name bump.",
       ],
     },
     {
@@ -443,7 +440,8 @@ export const RESUME: Resume = {
       summary:
         "Two-node k3s cluster on repurposed Intel hardware (Dell desktop + Mac mini reflashed from macOS to Ubuntu, with additional MacBooks reflashed and staged to join); hosts an ephemeral GitHub Actions runner pool for Flyer.",
       bullets: [
-        "**Built a 2-node k3s cluster** on repurposed Intel hardware (Dell desktop + Mac mini, Ubuntu 24.04 + `containerd`) running **Actions Runner Controller (ARC)** with a runner scale set labeled `homelab` — each CI job spawns an ephemeral pod (clean filesystem per job, zero idle compute when the queue is empty). Hosts ops-class CI for Flyer.",
+        "**Built a 2-node k3s cluster** on repurposed Intel hardware (Dell desktop + Mac mini, Ubuntu 24.04 + `containerd`) running **Actions Runner Controller (ARC)** with a `homelab` runner scale set — each Flyer CI job spawns an ephemeral pod (clean filesystem per job, zero idle compute).",
+        "**Cut Flyer CI wall-clock 31:30 → 13:35 (~57%)** with a custom runner image (psql, `docker compose` v2, Playwright deps, `shellcheck`/`bats`/`actionlint` baked in), k3s `hostPath` caches replacing `actions/cache`, and a two-pool split routing CPU-heavy jobs to the faster node.",
       ],
     },
     {
@@ -466,9 +464,9 @@ export const RESUME: Resume = {
       summary:
         "Empirical study of whether code style affects AI coding-agent bug-fix performance.",
       bullets: [
-        "**Designed and ran a 1,920-trial benchmark** measuring whether code style affects AI coding-agent bug-fix rates — 4 Python projects (~20k LOC, 3,039 tests), 6 style variants, 14 mutation types, 2 evaluation modes.",
-        "**Built the supporting infrastructure:** a tree-sitter AST transformation framework (whitelist renames, `pytest.mark.parametrize` syncing) and a multi-agent harness with pluggable Claude Code / Codex CLI / Gemini CLI adapters — rate-limit detection with checkpoint resumption, manifest mode for byte-identical input across agents, process-group termination on timeout.",
-        "**Headline finding:** code style had no statistically significant effect on fix rate (p = 0.998; 1pp spread). Repository difficulty (28pp spread) and mutation type (29pp spread) dominated.",
+        "**Ran a 1,920-trial benchmark** measuring whether code style affects AI coding-agent bug-fix rates — 4 Python projects (~20k LOC, 3,039 tests), 6 styles, 14 mutation types, 2 evaluation modes.",
+        "**Built a tree-sitter AST transformation framework** (whitelist renames, `pytest.mark.parametrize` syncing) + a multi-agent harness with Claude Code / Codex CLI / Gemini CLI adapters — checkpoint-resume on rate limits, manifest mode for byte-identical input across agents, process-group termination on timeout.",
+        "**Code style had no statistically significant effect on fix rate** (p = 0.998; 1pp spread); repository difficulty (28pp) and mutation type (29pp) dominated.",
       ],
     },
   ] satisfies Entry[],

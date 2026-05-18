@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  type RefObject,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -38,7 +39,6 @@ import {
   normalizeResume,
   resolveSectionOrder,
 } from "../data";
-import { estimatePageFit, type PageFitStatus } from "../_lib/estimatePageFit";
 import ResumeScreen from "./ResumeScreen";
 import ResumePrint from "./ResumePrint";
 
@@ -94,11 +94,12 @@ export default function ResumeEditor({
     return () => window.removeEventListener("beforeunload", handler);
   }, [dirty]);
 
-  // Print-page fit estimate. Recomputed on every edit; cheap heuristic.
-  // Run on the normalized resume so empty lines etc. don't inflate the
-  // estimate while the user is still typing.
+  // Print-page fit, measured from a real off-screen render of the print
+  // layout (see usePrintPageFit) — the SaveBar reports the exact same
+  // page count the print preview does, never a heuristic guess. Run on the
+  // normalized resume so empty lines etc. don't inflate it while typing.
   const normalized = useMemo(() => normalizeResume(resume), [resume]);
-  const pageFit = useMemo(() => estimatePageFit(normalized), [normalized]);
+  const { fit: pageFit, measureRef } = usePrintPageFit(normalized);
 
   if (previewMode !== "off") {
     return (
@@ -146,6 +147,7 @@ export default function ResumeEditor({
           pageFitPages={pageFit.pages}
         />
       </div>
+      <PrintMeasureProbe resume={normalized} innerRef={measureRef} />
     </div>
   );
 }
@@ -1139,9 +1141,13 @@ function PreviewView({
           <button
             type="button"
             onClick={onBack}
-            className="font-typewriter text-xs uppercase tracking-widest text-sepia-700 dark:text-sepia-300 hover:text-sepia-900 dark:hover:text-cream inline-flex items-center gap-1.5 px-2 py-1"
+            className="font-typewriter text-xs uppercase tracking-widest leading-none text-sepia-700 dark:text-sepia-300 hover:text-sepia-900 dark:hover:text-cream inline-flex items-center gap-1.5 px-2 py-1"
           >
-            <FaArrowLeft className="w-3 h-3" />
+            {/* Optical nudge: the typewriter font's uppercase caps sit
+                high in their line box, so a box-centered icon reads as
+                bottom-aligned. Lift the icon to the caps' visual center.
+                Tune the px if the font/size changes. */}
+            <FaArrowLeft className="w-3 h-3 shrink-0 -translate-y-[2px]" />
             Back to editor
           </button>
           <span className="w-px h-4 bg-sepia-300 dark:bg-sepia-700" aria-hidden />
@@ -1251,52 +1257,141 @@ function paginateForPrintPreview(
   }
 }
 
+// ---------------------------------------------------------------------------
+// Print-page measurement — the single source of truth shared by the editor's
+// SaveBar and the print preview. Both render the same <ResumePrint> at the
+// same width and run the same paginate-then-measure pass, so the page count
+// they report can never disagree. (The old character-heuristic estimator
+// undercounted long bullets and drifted as content grew.)
+// ---------------------------------------------------------------------------
+
+// Letter dimensions in CSS px (96 dpi). Margins mirror @page in resume.css:
+// 0.35in uniform. The stride includes the visual gap between page frames so
+// measured coordinates line up with the rendered sheets.
+const PAGE_HEIGHT_IN = 11;
+const PAGE_HEIGHT_PX = PAGE_HEIGHT_IN * 96;
+const PRINT_TOP_MARGIN_PX = 0.35 * 96;
+const PRINT_BOTTOM_MARGIN_PX = 0.35 * 96;
+const PAGE_GAP_PX = 28;
+const PAGE_STRIDE_PX = PAGE_HEIGHT_PX + PAGE_GAP_PX;
+const PRINT_USABLE_BOTTOM_PX = PAGE_HEIGHT_PX - PRINT_BOTTOM_MARGIN_PX;
+
+type PageFitStatus = "ok" | "tight" | "overflow";
+
+interface PrintPageFit {
+  pageCount: number;
+  pages: number; // fractional — drives the SaveBar "% of page" / "N.N pages" copy
+  status: PageFitStatus;
+}
+
+// Paginate the live content element (idempotent mutation) then measure its
+// real height. This IS the definition of "how many pages" for both the
+// preview frames and the SaveBar banner.
+function measurePrintPages(content: HTMLElement): PrintPageFit {
+  paginateForPrintPreview(
+    content,
+    PAGE_STRIDE_PX,
+    PRINT_TOP_MARGIN_PX,
+    PRINT_USABLE_BOTTOM_PX
+  );
+  const pages = content.scrollHeight / PAGE_STRIDE_PX;
+  const pageCount = Math.max(1, Math.ceil(pages));
+  const status: PageFitStatus =
+    pages < 0.9 ? "ok" : pages <= 1.0 ? "tight" : "overflow";
+  return { pageCount, pages, status };
+}
+
+// Owns an off-screen measuring node so the SaveBar reflects the real
+// rendered height even while the preview is closed. (The always-rendered
+// <ResumePrint> from the page is display:none on screen → scrollHeight 0,
+// so it can't be measured in place.)
+function usePrintPageFit(resume: Resume): {
+  fit: PrintPageFit;
+  measureRef: RefObject<HTMLDivElement | null>;
+} {
+  const measureRef = useRef<HTMLDivElement>(null);
+  const [fit, setFit] = useState<PrintPageFit>({
+    pageCount: 1,
+    pages: 0,
+    status: "ok",
+  });
+  useLayoutEffect(() => {
+    const el = measureRef.current;
+    if (!el) return;
+    const run = () => {
+      const next = measurePrintPages(el);
+      setFit((prev) =>
+        prev.pageCount === next.pageCount &&
+        prev.status === next.status &&
+        Math.abs(prev.pages - next.pages) < 0.001
+          ? prev
+          : next
+      );
+    };
+    run();
+    const observer = new ResizeObserver(run);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [resume]);
+  return { fit, measureRef };
+}
+
+// The hidden measuring render. visibility:hidden keeps full layout (so
+// scrollHeight is real) while staying invisible and non-interactive;
+// position:absolute takes it out of the editor's flow. Width + classes
+// mirror the visible preview exactly, so wrapping — and therefore measured
+// height — matches the preview and the printed PDF.
+function PrintMeasureProbe({
+  resume,
+  innerRef,
+}: {
+  resume: Resume;
+  innerRef: RefObject<HTMLDivElement | null>;
+}) {
+  return (
+    <div
+      aria-hidden
+      className="resume-print-preview"
+      style={{
+        position: "absolute",
+        left: 0,
+        top: 0,
+        width: "8.5in",
+        visibility: "hidden",
+        pointerEvents: "none",
+        zIndex: -1,
+      }}
+    >
+      <div ref={innerRef} className="resume-print-preview__content">
+        <ResumePrint resume={resume} />
+      </div>
+    </div>
+  );
+}
+
 function PrintPreview({ resume }: { resume: Resume }) {
   const contentRef = useRef<HTMLDivElement>(null);
   const [pageCount, setPageCount] = useState(1);
 
-  // Letter dimensions in CSS px (96 dpi). Margins mirror @page in
-  // resume.css: 0.35in uniform. pageStride includes the visual gap
-  // between page frames so coordinates line up.
-  const PAGE_HEIGHT_IN = 11;
-  const PAGE_HEIGHT_PX = PAGE_HEIGHT_IN * 96;
-  const TOP_MARGIN_PX = 0.35 * 96;
-  const BOTTOM_MARGIN_PX = 0.35 * 96;
-  const GAP_PX = 28;
-  const PAGE_STRIDE_PX = PAGE_HEIGHT_PX + GAP_PX;
-  const USABLE_BOTTOM_PX = PAGE_HEIGHT_PX - BOTTOM_MARGIN_PX;
-
   useLayoutEffect(() => {
     const el = contentRef.current;
     if (!el) return;
-    const reflowAndMeasure = () => {
-      paginateForPrintPreview(
-        el,
-        PAGE_STRIDE_PX,
-        TOP_MARGIN_PX,
-        USABLE_BOTTOM_PX
-      );
-      const h = el.scrollHeight;
-      const n = Math.max(1, Math.ceil(h / PAGE_STRIDE_PX));
+    const run = () => {
+      const { pageCount: n } = measurePrintPages(el);
       setPageCount((prev) => (prev === n ? prev : n));
     };
-    reflowAndMeasure();
-    const observer = new ResizeObserver(reflowAndMeasure);
+    run();
+    const observer = new ResizeObserver(run);
     observer.observe(el);
     return () => observer.disconnect();
-  }, [
-    resume,
-    PAGE_STRIDE_PX,
-    TOP_MARGIN_PX,
-    USABLE_BOTTOM_PX,
-  ]);
+  }, [resume]);
 
   return (
     <div
       className="resume-print-preview"
       style={{
         minHeight: `calc(${pageCount * PAGE_HEIGHT_IN}in + ${
-          (pageCount - 1) * GAP_PX
+          (pageCount - 1) * PAGE_GAP_PX
         }px)`,
       }}
     >
@@ -1306,7 +1401,7 @@ function PrintPreview({ resume }: { resume: Resume }) {
           key={i}
           className="resume-print-preview__page-frame"
           style={{
-            top: `calc(${i * PAGE_HEIGHT_IN}in + ${i * GAP_PX}px)`,
+            top: `calc(${i * PAGE_HEIGHT_IN}in + ${i * PAGE_GAP_PX}px)`,
           }}
           aria-hidden
         >

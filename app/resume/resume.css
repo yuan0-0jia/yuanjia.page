@@ -99,6 +99,15 @@
   display: none;
 }
 
+/* .resume-print paints a solid white background — correct for real
+   paper under @media print. In the preview the page-frames already
+   supply the white sheets, so the content must stay transparent;
+   otherwise its background bridges the inter-page gap and the two
+   sheets look joined by a white block. */
+.resume-print-preview .resume-print {
+  background: transparent;
+}
+
 /* ------------------------------------------------------------------ */
 /* Print-only: hide site chrome and the rich screen layout            */
 /* ------------------------------------------------------------------ */
@@ -225,7 +234,7 @@
 }
 
 .resume-print__edu {
-  margin-bottom: 4pt;
+  margin-bottom: 1pt;
 }
 
 .resume-print__skills {
