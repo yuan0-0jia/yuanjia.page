@@ -416,12 +416,14 @@ export const RESUME: Resume = {
         "Production event platform for college communities; owned the deploy pipeline, security hardening, and disaster recovery.",
       bullets: [
         "**Built a 3-mode GitHub Actions deploy workflow** with post-deploy SHA probe + auto-rollback via a `.deploy-history` ledger — broken-deploy MTTR ~90s.",
+        "**Built a `wait-for-ci` gate on auto-deploy** — polls the GitHub Actions API for the deploy SHA (15s interval, 15min cap) and blocks promotion until CI concludes green; closes a race where deploys could ship ahead of in-flight CI on the same commit.",
         "**Restricted the CI deploy SSH key with an `authorized_keys` forced-command wrapper** — strict `IMAGE_TAG` regex, op allowlist, audited invocations; a leaked key can't open a shell.",
         "**Built a schema-versioned deploy state machine in Bash** — one remote `flock` for the full lifecycle + a `peek_claim` gate on drift CI; two prod-mutating ops can't interleave.",
         "**Shipped daily PostgreSQL → S3 backups** with `pg_dump | gzip` integrity checks, 14-day lifecycle, EC2 instance-profile auth (no static AWS keys); verified via live restore drill from prod.",
         "**Migrated PostgreSQL from superuser to a least-privilege role** via idempotent `public`-schema ownership transfer — SQL-injection blast radius cut from full DBA to app-scoped data.",
+        "**Stripped a JWT-payload PII leak from proxy logs** — every authenticated request was logging the decoded session token (email, name, image URL, admin state); replaced with safe diagnostics scoped to the unauthenticated redirect path.",
         "**Hardened CI against supply-chain + drift risks** — SHA-pinned third-party actions, an SSH-based prod-drift check, and `shellcheck` + `bats` coverage on every infra script.",
-        "**Migrated 10 ops + CI + deploy jobs onto self-hosted homelab runner pools** — ephemeral pods inside the Tailscale mesh; only the cross-arch linux/arm64 image build stays hosted (homelab nodes are x86).",
+        "**Migrated 100% of CI + deploy jobs onto self-hosted homelab runner pools** — ephemeral pods across three pools (mac-mini, Dell async, M2 ARM64) in the Tailscale mesh, including the path-filter fan-out gate; CI rode through a May 2026 GitHub Actions billing outage that would've blocked any hosted-runner job.",
         "**Led the production domain cutover** from `heywhatsup.app` to `joinflyer.com` — DNS, dual Let's Encrypt certs, host-based 301s, Resend DKIM swap, NextAuth + Google OAuth callbacks, PWA service-worker cache-name bump.",
       ],
     },
@@ -436,12 +438,13 @@ export const RESUME: Resume = {
         "Tailscale",
         "Ubuntu 24.04",
         "containerd",
+        "Lima (Apple Silicon arm64 VM)",
       ],
       summary:
-        "Two-node k3s cluster on repurposed Intel hardware (Dell desktop + Mac mini reflashed from macOS to Ubuntu, with additional MacBooks reflashed and staged to join); hosts an ephemeral GitHub Actions runner pool for Flyer.",
+        "Three-node mixed-arch k3s cluster — Dell desktop + Mac mini on Ubuntu 24.04 (Intel) + an Ubuntu-ARM64 Lima VM on an M2 MacBook (Apple Silicon); hosts ephemeral GitHub Actions runner pools for Flyer across three roles.",
       bullets: [
-        "**Built a 2-node k3s cluster** on repurposed Intel hardware (Dell desktop + Mac mini, Ubuntu 24.04 + `containerd`) running **Actions Runner Controller (ARC)** with a `homelab` runner scale set — each Flyer CI job spawns an ephemeral pod (clean filesystem per job, zero idle compute).",
-        "**Cut Flyer CI wall-clock 31:30 → 13:35 (~57%)** with a custom runner image (psql, `docker compose` v2, Playwright deps, `shellcheck`/`bats`/`actionlint` baked in), k3s `hostPath` caches replacing `actions/cache`, and a two-pool split routing CPU-heavy jobs to the faster node.",
+        "**Built a 3-node mixed-arch k3s cluster** on repurposed hardware — Dell desktop + Mac mini on Ubuntu 24.04 (Intel) + an Ubuntu-ARM64 Lima VM on an M2 MacBook — running **Actions Runner Controller (ARC)** across three scale sets (`homelab`, `homelab-async`, `homelab-arm64`); each Flyer CI job spawns an ephemeral pod (clean filesystem per job, zero idle compute).",
+        "**Cut Flyer CI wall-clock 31:30 → ~7:50 (~75%) end-to-end** — staged through a custom multi-arch runner image (psql, `docker compose` v2, Playwright deps, `shellcheck`/`bats`/`actionlint` baked in), k3s `hostPath` caches replacing `actions/cache`, an x86 two-pool split, and an M2 ARM64 pool that runs build + CPU-heavy test jobs arm64-native (no QEMU emulation).",
       ],
     },
     {
