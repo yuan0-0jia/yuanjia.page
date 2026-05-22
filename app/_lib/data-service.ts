@@ -2,79 +2,43 @@ import { createClient } from "@/utils/supabase/server";
 import type { Resume } from "@/app/resume/data";
 import { normalizeResume } from "@/app/resume/data";
 
-export async function getAvatar() {
-  const supabase = await createClient();
-  const { data, error } = await supabase.from("avatar").select("*");
-
-  if (error) {
-    console.error(error);
-  }
-
-  return data;
-}
-
-/** The profile-photo URL from the `avatar` table (singleton row id=1). */
-export async function getAvatarUrl(): Promise<string | null> {
-  const data = await getAvatar();
-  const row =
-    data?.find((a: { id: number; image: string }) => a.id === 1) ?? data?.[0];
-  return row?.image ?? null;
-}
+export type Site = {
+  bio: string | null;
+  resume: Resume | null;
+  avatar: string | null;
+};
 
 /**
- * Read the resume JSON from Supabase (singleton row id=0).
- * Returns null when the row is missing or `data` is null — the caller
- * is expected to fall back to the static RESUME default from
- * app/resume/data.ts.
+ * Read the site's singleton content row (id=1) — bio, resume, and avatar in one
+ * query. Falls back to nulls when the row or table is missing, so callers use
+ * their static defaults (DEFAULT_BIO, RESUME, no avatar).
  */
-export async function getResumeData(): Promise<Resume | null> {
+export async function getSite(): Promise<Site> {
   const supabase = await createClient();
   const { data, error } = await supabase
-    .from("resume")
-    .select("data")
-    .eq("id", 0)
+    .from("site")
+    .select("bio, resume, avatar")
+    .eq("id", 1)
     .single();
 
   if (error) {
-    // Both of these are "expected on first run" states — fall back silently.
-    //   PGRST116 — single() returned no rows (table exists but id=0 missing)
-    //   PGRST205 — table missing from PostgREST schema cache
-    if (error.code === "PGRST205") {
-      console.warn(
-        "[resume] table not yet created — run app/resume/MIGRATION.sql in Supabase to enable editing. Falling back to static data."
-      );
-    } else if (error.code !== "PGRST116") {
-      console.error("Resume could not be loaded:", error);
+    // PGRST116 = no row yet; PGRST205 = table not created — both expected pre-setup.
+    if (error.code !== "PGRST116" && error.code !== "PGRST205") {
+      console.error("[site] load error:", error);
     }
-    return null;
+    return { bio: null, resume: null, avatar: null };
   }
 
-  const raw = (data?.data as Resume | null) ?? null;
-  return raw ? normalizeResume(raw) : null;
+  return {
+    bio: (data?.bio as string | null) ?? null,
+    resume: data?.resume ? normalizeResume(data.resume as Resume) : null,
+    avatar: (data?.avatar as string | null) ?? null,
+  };
 }
 
-export async function getBio(): Promise<string | null> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("about")
-    .select("content_json")
-    .eq("id", 0)
-    .single();
-
-  if (error) {
-    if (error.code !== "PGRST116") console.error(error);
-    return null;
-  }
-
-  const raw = data?.content_json;
-  // New format: {bio: "..."}
-  if (raw && typeof raw === "object" && "bio" in raw) return String(raw.bio);
-  // Legacy BlockNote format: extract first paragraph text
-  if (Array.isArray(raw) && raw.length > 0) {
-    const first = raw[0] as { content?: Array<{ text?: string }> };
-    return first.content?.map((c) => c.text ?? "").join("") ?? null;
-  }
-  return null;
+/** The resume JSON (or null → caller falls back to the static RESUME). */
+export async function getResumeData(): Promise<Resume | null> {
+  return (await getSite()).resume;
 }
 
 const FLICKR_API_BASE = "https://www.flickr.com/services/rest";

@@ -45,7 +45,7 @@ export async function getUser() {
 /**
  * Replace the profile avatar. Auth-gated. Uploads the image to the `photos`
  * storage bucket under a timestamped name (so the public URL changes and no
- * stale CDN copy is served), then points the singleton avatar row (id=1) at it.
+ * stale CDN copy is served), then points `site.avatar` (singleton row id=1) at it.
  */
 export async function updateAvatar(formData: FormData) {
   const { data, error } = await getUser();
@@ -72,8 +72,8 @@ export async function updateAvatar(formData: FormData) {
   }
 
   const { error: updateError } = await supabase
-    .from("avatar")
-    .update({ image: publicUrl })
+    .from("site")
+    .update({ avatar: publicUrl })
     .eq("id", 1);
 
   if (updateError) {
@@ -85,8 +85,8 @@ export async function updateAvatar(formData: FormData) {
 }
 
 /**
- * Replace the about.md bio. Auth-gated. Writes `{ bio }` to the `about` table's
- * singleton row (id=0, content_json JSONB) and revalidates the homepage.
+ * Replace the about.md bio. Auth-gated. Writes it to `site.bio` (singleton row
+ * id=1) and revalidates the homepage.
  */
 export async function updateBio(bio: string) {
   const { data, error } = await getUser();
@@ -94,18 +94,18 @@ export async function updateBio(bio: string) {
 
   const supabase = await createClient();
   const { data: updated, error: updateError } = await supabase
-    .from("about")
-    .update({ content_json: { bio } })
-    .eq("id", 0)
+    .from("site")
+    .update({ bio })
+    .eq("id", 1)
     .select();
 
   if (updateError) {
-    console.error("[about] update error:", updateError);
+    console.error("[bio] update error:", updateError);
     throw new Error(`Bio could not be updated: ${updateError.message}`);
   }
   if (!updated || updated.length === 0) {
     throw new Error(
-      "Bio update matched 0 rows — your session may lack write permission (check RLS) or row id=0 is missing."
+      "Bio update matched 0 rows — your session may lack write permission (check RLS) or the site row is missing."
     );
   }
 
@@ -114,8 +114,8 @@ export async function updateBio(bio: string) {
 
 /**
  * Replace the resume JSON in Supabase. Auth-gated.
- * Writes the full resume object as a single JSONB value to the
- * singleton row (id=0). Revalidates the /resume route on success.
+ * Writes the full resume object to `site.resume` (singleton row id=1).
+ * Revalidates the /resume route on success.
  */
 export async function updateResumeData(resume: Resume) {
   const { data, error } = await getUser();
@@ -127,9 +127,9 @@ export async function updateResumeData(resume: Resume) {
   // filtered the write. Without this the call returns success even when 0
   // rows were actually changed.
   const { data: updated, error: updateError } = await supabase
-    .from("resume")
-    .update({ data: resume })
-    .eq("id", 0)
+    .from("site")
+    .update({ resume })
+    .eq("id", 1)
     .select();
 
   if (updateError) {
@@ -139,7 +139,7 @@ export async function updateResumeData(resume: Resume) {
 
   if (!updated || updated.length === 0) {
     console.error(
-      "[resume] UPDATE affected 0 rows — RLS rejected the write or row id=0 doesn't exist. Authenticated user:",
+      "[resume] UPDATE affected 0 rows — RLS rejected the write or the site row is missing. Authenticated user:",
       data.user.email
     );
     throw new Error(

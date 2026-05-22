@@ -1,5 +1,5 @@
 import { ImageResponse } from "next/og";
-import { getAvatar } from "./_lib/data-service";
+import { getSite } from "./_lib/data-service";
 
 export const runtime = "nodejs";
 export const alt = "Yuan Jia — Software engineer & photographer";
@@ -7,8 +7,7 @@ export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
 export default async function Image() {
-  const avatar = await getAvatar();
-  const avatarUrl = avatar?.find((photo: any) => photo.id === 1)?.image;
+  const { avatar: avatarUrl } = await getSite();
 
   return new ImageResponse(
     <div
