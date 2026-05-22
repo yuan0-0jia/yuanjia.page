@@ -32,7 +32,9 @@ export async function GET(request: Request) {
         ? `https://${forwardedHost}`
         : origin;
 
-      return NextResponse.redirect(`${redirectBase}${next}`);
+      // Flag a fresh sign-in so the homepage can show a success indicator.
+      const sep = next.includes("?") ? "&" : "?";
+      return NextResponse.redirect(`${redirectBase}${next}${sep}auth=in`);
     }
   }
 

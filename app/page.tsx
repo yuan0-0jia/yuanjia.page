@@ -1,166 +1,25 @@
-import Link from "next/link";
-import { Suspense } from "react";
-import EditableAvatar from "./_components/EditableAvatar";
 import {
-  FaArrowUpRightFromSquare,
-  FaEnvelope,
-  FaFileLines,
-  FaGithub,
-  FaLinkedin,
-} from "react-icons/fa6";
-import FlickrPhotos from "./_components/FlickrPhotos";
-import Projects from "./_components/Projects";
-import ScrollReveal from "./_components/ScrollReveal";
-import TypewriterText from "./_components/TypewriterText";
-import { getAvatar, getFlickrPhotos } from "./_lib/data-service";
+  getFlickrPhotos,
+  getBio,
+  getAvatarUrl,
+  getResumeData,
+} from "./_lib/data-service";
+import TerminalWall from "./_components/TerminalWall";
 
 export const revalidate = 3600;
 
-async function PhotosGrid() {
-  const flickrPhotos = await getFlickrPhotos();
-  return <FlickrPhotos photos={flickrPhotos} count={6} />;
-}
-
+// Await the data here (no empty-photo Suspense fallback) so the terminal only
+// ever renders with real photos — otherwise returning to the page briefly
+// shows an empty grid before swapping in the loaded one. The route's
+// loading.tsx covers the fetch while data (revalidated hourly) resolves.
 export default async function Home() {
-  const avatar = await getAvatar();
-
+  const [photos, bio, avatar, resume] = await Promise.all([
+    getFlickrPhotos(),
+    getBio(),
+    getAvatarUrl(),
+    getResumeData(),
+  ]);
   return (
-    <>
-      {/* Hero */}
-      <section className="py-20 md:py-28 lg:py-36 px-4">
-        <div className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-14 max-w-4xl mx-auto">
-          <div className="relative shrink-0 animate-fade-in opacity-0 stagger-1">
-            <div className="absolute -inset-2 border border-sepia-300/60 dark:border-sepia-700/60 rounded-full" />
-            <EditableAvatar avatar={avatar?.find((photo) => photo.id === 1)} />
-          </div>
-
-          <div className="text-center md:text-left">
-            <h1 className="font-typewriter text-3xl md:text-4xl lg:text-5xl text-warmGray-800 dark:text-cream mb-3 animate-fade-in-up opacity-0 stagger-2">
-              Yuan Jia
-            </h1>
-            <TypewriterText
-              text="Software engineer & photographer"
-              delay={1400}
-              speed={60}
-              className="font-typewriter text-sm md:text-base text-sepia-600 dark:text-sepia-400 mb-6 tracking-wider leading-relaxed h-[1.5em]"
-            />
-            <div className="flex items-center gap-5 justify-center md:justify-start animate-fade-in-up opacity-0 stagger-4">
-              <Link
-                href="/about"
-                className="font-typewriter text-sm tracking-wider text-sepia-600 dark:text-sepia-400 underline decoration-sepia-500/50 decoration-1 underline-offset-4 hover:decoration-sepia-500 dark:hover:decoration-sepia-400 transition-colors"
-              >
-                More about me
-              </Link>
-              <span className="text-sepia-300 dark:text-sepia-700">|</span>
-              <ul className="flex items-center gap-5">
-                <li>
-                  <a
-                    href="https://www.linkedin.com/in/yuanjia1/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label="LinkedIn"
-                    className="text-sepia-500 dark:text-sepia-400 hover:text-sepia-700 dark:hover:text-sepia-300 transition-colors"
-                  >
-                    <FaLinkedin className="w-4 h-4" />
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="https://github.com/yuan0-0jia"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label="GitHub"
-                    className="text-sepia-500 dark:text-sepia-400 hover:text-sepia-700 dark:hover:text-sepia-300 transition-colors"
-                  >
-                    <FaGithub className="w-4 h-4" />
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="mailto:hello.yuanjia@gmail.com"
-                    aria-label="Email"
-                    className="text-sepia-500 dark:text-sepia-400 hover:text-sepia-700 dark:hover:text-sepia-300 transition-colors"
-                  >
-                    <FaEnvelope className="w-4 h-4" />
-                  </a>
-                </li>
-                <li>
-                  <Link
-                    href="/resume"
-                    aria-label="Resume"
-                    className="text-sepia-500 dark:text-sepia-400 hover:text-sepia-700 dark:hover:text-sepia-300 transition-colors"
-                  >
-                    <FaFileLines className="w-4 h-4" />
-                  </Link>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Projects */}
-      <section className="bg-sepia-800 dark:bg-sepia-900 px-4 py-20 md:py-28 lg:py-36 tracking-wide">
-        <ScrollReveal animation="fade-up">
-          <div className="text-center max-w-4xl mx-auto">
-            <header className="mb-12">
-              <div className="vintage-divider mb-8">
-                <span className="text-sepia-500">✦</span>
-              </div>
-              <h2 className="font-typewriter text-2xl md:text-3xl text-cream tracking-wide">
-                Projects
-              </h2>
-              <p className="font-typewriter text-sm mt-4 text-sepia-200 dark:text-sepia-400 tracking-wider">
-                A few things I&apos;ve built.
-              </p>
-            </header>
-          </div>
-        </ScrollReveal>
-
-        <Suspense>
-          <Projects />
-        </Suspense>
-      </section>
-
-      {/* Photos */}
-      <section className="px-4 py-20 md:py-28 lg:py-36 tracking-wide">
-        <div className="max-w-7xl w-full mx-auto">
-          <ScrollReveal animation="fade-up">
-            <header className="mb-10 text-center">
-              <div className="vintage-divider mb-8">
-                <span className="text-sepia-500 dark:text-sepia-400">✦</span>
-              </div>
-              <h2 className="font-typewriter text-2xl md:text-3xl text-warmGray-800 dark:text-cream tracking-wide">
-                Photos
-              </h2>
-              <p className="font-typewriter text-sm mt-4 text-sepia-500 dark:text-sepia-400 tracking-wider">
-                What I photographed.
-              </p>
-            </header>
-          </ScrollReveal>
-
-          <Suspense>
-            <PhotosGrid />
-          </Suspense>
-
-          <ScrollReveal animation="fade-up" delay={400}>
-            <div className="mt-10 text-center">
-              <p className="font-typewriter text-base md:text-lg text-warmGray-700 dark:text-warmGray-200 tracking-wide leading-loose">
-                More on{" "}
-                <Link
-                  href="https://www.flickr.com/photos/yuan-jia/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-sepia-600 dark:text-sepia-400 underline decoration-sepia-500/50 decoration-1 underline-offset-4 hover:decoration-sepia-500 transition-colors"
-                >
-                  Flickr
-                  <FaArrowUpRightFromSquare className="w-3 h-3" />
-                </Link>
-              </p>
-            </div>
-          </ScrollReveal>
-        </div>
-      </section>
-    </>
+    <TerminalWall photos={photos} bio={bio} avatar={avatar} resume={resume} />
   );
 }

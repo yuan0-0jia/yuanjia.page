@@ -9,28 +9,37 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        typewriter: ["var(--font-typewriter)", "Courier", "monospace"],
-        serif: ["var(--font-serif)", "Georgia", "serif"],
+        serif:      ["var(--font-serif)",  "Newsreader",      "Georgia",       "serif"],
+        sans:       ["var(--font-sans)",   "Instrument Sans", "ui-sans-serif", "system-ui", "sans-serif"],
+        hand:       ["var(--font-hand)",   "Kalam",           "cursive"],
+        mono:       ["var(--font-mono)",   "JetBrains Mono",  "ui-monospace",  "monospace"],
+        // Backward-compat alias
+        typewriter: ["var(--font-mono)",   "JetBrains Mono",  "ui-monospace",  "monospace"],
       },
       colors: {
-        // Warm amber palette
-        // Core: #FFA401, #CC9329, #99793D, #66583D, #332F29
-        cream: "#fdf9f2",
-        parchment: "#f5efe3",
+        // Paper palette via CSS vars
+        paper:   "var(--paper)",
+        ink:     "var(--ink)",
+        soft:    "var(--soft)",
+        card:    "var(--card)",
+        accent:  "var(--accent)",
+        // Legacy static tokens kept for any remaining usages
+        cream:     "#f1ecdd",
+        parchment: "#e6dfca",
         sepia: {
-          50: "#fefcf6",
+          50:  "#fefcf6",
           100: "#faf5e6",
           200: "#f2e5c8",
           300: "#e5cc8e",
-          400: "#FFA401",  // bright amber
-          500: "#CC9329",  // warm gold
-          600: "#99793D",  // bronze
-          700: "#66583D",  // dark bronze
-          800: "#4a4133",  // deep brown
-          900: "#332F29",  // charcoal
+          400: "#FFA401",
+          500: "#CC9329",
+          600: "#99793D",
+          700: "#66583D",
+          800: "#4a4133",
+          900: "#332F29",
         },
         warmGray: {
-          50: "#faf9f6",
+          50:  "#faf9f6",
           100: "#f3f1ec",
           200: "#e7e4dc",
           300: "#d2cec4",
@@ -43,27 +52,17 @@ const config: Config = {
         },
       },
       animation: {
-        "fade-in": "fadeIn 1s ease-out forwards",
+        "fade-in":    "fadeIn 1s ease-out forwards",
         "fade-in-up": "fadeInUp 1s ease-out forwards",
-        "typewriter": "typewriter 2s steps(20) forwards",
-        "blink": "blink 0.8s step-end infinite",
       },
       keyframes: {
         fadeIn: {
-          "0%": { opacity: "0" },
+          "0%":   { opacity: "0" },
           "100%": { opacity: "1" },
         },
         fadeInUp: {
-          "0%": { opacity: "0", transform: "translateY(12px)" },
+          "0%":   { opacity: "0", transform: "translateY(12px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
-        },
-        typewriter: {
-          "0%": { width: "0" },
-          "100%": { width: "100%" },
-        },
-        blink: {
-          "0%, 100%": { opacity: "1" },
-          "50%": { opacity: "0" },
         },
       },
     },

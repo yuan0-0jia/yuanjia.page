@@ -5,206 +5,163 @@
 ::view-transition-old(root) {
   animation: 150ms ease-out both page-fade-out;
 }
-
 ::view-transition-new(root) {
   animation: 200ms ease-in 100ms both page-fade-in;
 }
-
 @keyframes page-fade-out {
-  to {
-    opacity: 0;
-    filter: blur(2px);
-  }
+  to { opacity: 0; filter: blur(2px); }
 }
-
 @keyframes page-fade-in {
-  from {
-    opacity: 0;
-    filter: blur(2px);
-  }
+  from { opacity: 0; filter: blur(2px); }
 }
 
 @layer base {
   :root {
-    --background: #fdf9f2;
-    --foreground: #332F29;
-    --accent: #CC9329;
+    /* Paper palette — light (cream) */
+    --paper:       #f1ecdd;
+    --paper-deep:  #e6dfca;
+    --ink:         #1f1c17;
+    --soft:        #6a6253;
+    --card:        #fbf6e6;
+    --accent:      #c83a2c;
+    --border:      rgba(0, 0, 0, 0.10);
     --transition-base: 0.3s ease;
-
-    /* Amber palette for CSS usage */
-    --sepia-100: #faf5e6;
-    --sepia-200: #f2e5c8;
-    --sepia-300: #e5cc8e;
-    --sepia-400: #FFA401;
-    --sepia-500: #CC9329;
-    --sepia-600: #99793D;
-    --sepia-700: #66583D;
-    --sepia-800: #4a4133;
-    --sepia-900: #332F29;
-    --cream: #fdf9f2;
-    --warmGray-800: #332F29;
   }
 
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --background: #1e1c18;
-      --foreground: #fdf9f2;
-    }
+  html.dark,
+  html.matrix {
+    /* Midnight tone — dark (matrix reuses this; the terminal renders its own
+       green palette, the rest of the site stays a cohesive dark desktop) */
+    --paper:       #1a1814;
+    --paper-deep:  #13110d;
+    --ink:         #f0e9d6;
+    --soft:        #a39880;
+    --card:        #262218;
+    --accent:      #c83a2c;
+    --border:      rgba(255, 255, 255, 0.10);
   }
 
   html {
     overflow-x: hidden;
     overflow-y: scroll;
     scrollbar-width: thin;
-    scrollbar-color: var(--sepia-500) var(--cream);
-  }
-
-  html.dark {
-    scrollbar-color: var(--sepia-600) var(--warmGray-800);
+    scrollbar-color: var(--soft) var(--paper);
   }
 
   body {
-    color: var(--foreground);
-    background: var(--background);
+    color: var(--ink);
+    background: var(--paper);
+    font-family: var(--font-sans, "Instrument Sans", ui-sans-serif, system-ui, sans-serif);
   }
 
   /* Smooth theme transition */
   *,
   *::before,
   *::after {
-    transition-property: background-color, border-color, color, fill, stroke,
-      box-shadow;
-    transition-duration: 0.5s;
+    transition-property: background-color, border-color, color, fill, stroke, box-shadow;
+    transition-duration: 0.4s;
     transition-timing-function: ease;
   }
 
-  /* Disable transitions on page load to prevent flash */
   .no-transitions *,
   .no-transitions *::before,
   .no-transitions *::after {
     transition: none !important;
   }
 
-  /* Selection styling - sepia tones */
   ::selection {
-    background-color: var(--sepia-200);
-    color: var(--sepia-900);
+    background-color: color-mix(in oklch, var(--accent), transparent 80%);
+    color: var(--ink);
   }
 
-  html.dark ::selection {
-    background-color: var(--sepia-700);
-    color: var(--cream);
-  }
+  h1, h2, h3 { text-wrap: balance; }
 
-  /* Balanced text wrapping for headings */
-  h1, h2, h3 {
-    text-wrap: balance;
-  }
-
-  /* Focus visible for accessibility */
   :focus-visible {
-    outline: 2px solid var(--sepia-500);
+    outline: 2px solid var(--accent);
     outline-offset: 2px;
   }
 
-  /* Link styling */
-  a {
-    transition: color var(--transition-base);
-  }
+  a { transition: color var(--transition-base); }
 }
 
 @layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+  .text-balance { text-wrap: balance; }
+  .font-serif  { font-family: var(--font-serif,  "Newsreader",    Georgia, serif); }
+  .font-sans   { font-family: var(--font-sans,   "Instrument Sans", ui-sans-serif, sans-serif); }
+  .font-hand   { font-family: var(--font-hand,   "Kalam", cursive); }
+  .font-mono   { font-family: var(--font-mono,   "JetBrains Mono", ui-monospace, monospace); }
 }
 
 @layer components {
-  /* ===========================================================
-     Resume type scale — single source of truth for resume page
-     typography. Each class bundles font + size + line-height +
-     letter-spacing + transform + weight for one text role.
-     Adjust here, not in JSX.
-     ----------------------------------------------------------- */
+  /* ── Resume type scale ─────────────────────────────────────────────── */
 
-  /* DISPLAY — the name at the top. Mobile 40px → desktop 48px. */
+  /* DISPLAY — name at top. */
   .resume-display {
-    font-family: var(--font-typewriter), Courier, monospace;
+    font-family: var(--font-serif, Georgia, serif);
+    font-style: italic;
     font-size: 2.5rem;
-    line-height: 1.05;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    font-weight: 400;
+    line-height: 1.0;
+    letter-spacing: -0.02em;
+    font-weight: 600;
   }
   @media (min-width: 768px) {
-    .resume-display {
-      font-size: 3rem;
-    }
+    .resume-display { font-size: 3rem; }
   }
 
-  /* EYEBROW — section headings, stack lists, skills category labels. */
+  /* EYEBROW — section headings, category labels. */
   .resume-eyebrow {
-    font-family: var(--font-typewriter), Courier, monospace;
+    font-family: var(--font-mono, ui-monospace, monospace);
     font-size: 0.6875rem;
     line-height: 1.6;
-    letter-spacing: 0.3em;
+    letter-spacing: 0.24em;
     text-transform: uppercase;
     font-weight: 400;
   }
 
-  /* KICKER — project / entry names. Heavier, slightly larger. */
+  /* KICKER — entry / project names. */
   .resume-kicker {
-    font-family: var(--font-typewriter), Courier, monospace;
+    font-family: var(--font-mono, ui-monospace, monospace);
     font-size: 0.9375rem;
     line-height: 1.3;
-    letter-spacing: 0.15em;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
-    font-weight: 700;
+    font-weight: 500;
   }
 
-  /* META — contact items, period dates, tagline, stack lists.
-     Lora at 13px so recruiter-skim text reads naturally. The typewriter
-     stays reserved for branded moments (display + eyebrow + kicker). */
+  /* META — contact items, dates, tagline. */
   .resume-meta {
-    font-family: var(--font-serif), Georgia, serif;
+    font-family: var(--font-sans, ui-sans-serif, sans-serif);
     font-size: 0.8125rem;
     line-height: 1.5;
     font-weight: 400;
   }
 
-  /* MICRO — last-updated line, location, byline-style smallest UI text.
-     Lora italic so it reads as supporting metadata, not a stamped label. */
+  /* MICRO — byline, location, smallest UI text. */
   .resume-micro {
-    font-family: var(--font-serif), Georgia, serif;
+    font-family: var(--font-mono, ui-monospace, monospace);
     font-size: 0.75rem;
     line-height: 1.5;
-    font-style: italic;
+    letter-spacing: 0.08em;
     font-weight: 400;
   }
 
-  /* BODY — bullets, descriptions, degree titles, summaries. */
+  /* BODY — bullets, descriptions. */
   .resume-body {
-    font-family: var(--font-serif), Georgia, serif;
+    font-family: var(--font-sans, ui-sans-serif, sans-serif);
     font-size: 0.875rem;
     line-height: 1.6;
     font-weight: 400;
   }
 
-  /* EMPHASIS — school names, primary content callouts. */
+  /* EMPHASIS — school names, callouts. */
   .resume-emphasis {
-    font-family: var(--font-serif), Georgia, serif;
+    font-family: var(--font-sans, ui-sans-serif, sans-serif);
     font-size: 1rem;
     line-height: 1.4;
-    font-weight: 700;
+    font-weight: 600;
   }
 
-  /* Typewriter heading style */
-  .typewriter-heading {
-    font-family: var(--font-typewriter), Courier, monospace;
-    letter-spacing: 0.05em;
-  }
-
-  /* Vintage divider */
+  /* ── Divider ────────────────────────────────────────────────────── */
   .vintage-divider {
     position: relative;
     display: flex;
@@ -212,582 +169,51 @@
     justify-content: center;
     gap: 1rem;
   }
-
   .vintage-divider::before,
   .vintage-divider::after {
     content: "";
     flex: 1;
     height: 1px;
-    background: linear-gradient(
-      to var(--direction, right),
-      transparent,
-      var(--sepia-300),
-      transparent
-    );
+    background: linear-gradient(to var(--direction, right), transparent, var(--soft), transparent);
+    opacity: 0.4;
   }
 
-  html.dark .vintage-divider::before,
-  html.dark .vintage-divider::after {
-    background: linear-gradient(
-      to var(--direction, right),
-      transparent,
-      var(--sepia-600),
-      transparent
-    );
-  }
-
-  /* Subtle paper texture effect */
-  .paper-texture {
-    position: relative;
-  }
-
-  .paper-texture::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%' height='100%' filter='url(%23noise)'/%3E%3C/svg%3E");
-    opacity: 0.03;
-    pointer-events: none;
-  }
-
-  /* Card hover effect - subtle warmth */
-  .card-hover {
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-  }
-
-  .card-hover:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 24px rgba(166, 124, 82, 0.1);
-  }
-
-  html.dark .card-hover:hover {
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
-  }
-
-  /* Image hover - subtle sepia on hover */
-  .img-vintage {
-    overflow: hidden;
-  }
-
-  .img-vintage img {
-    transition: transform 0.4s ease, filter 0.4s ease;
-  }
-
-  .img-vintage:hover img {
-    transform: scale(1.03);
-  }
-
-  /* Vintage border style */
+  /* ── Card/border helper ─────────────────────────────────────────── */
   .vintage-border {
-    border: 1px solid var(--sepia-200);
-    box-shadow: inset 0 0 0 1px var(--sepia-100),
-      0 2px 8px rgba(166, 124, 82, 0.08);
-  }
-
-  html.dark .vintage-border {
-    border-color: var(--sepia-700);
-    box-shadow: inset 0 0 0 1px var(--sepia-800), 0 2px 8px rgba(0, 0, 0, 0.2);
-  }
-
-  /* Spinner - sepia tones */
-  .spinner {
-    margin: 3.2rem auto 1.6rem;
-    width: 100px;
-    aspect-ratio: 1;
-    border-radius: 50%;
-    border: 8px solid var(--sepia-200);
-    border-right-color: var(--sepia-500);
-    animation: rotate 1s infinite linear;
-  }
-
-  .spinner-mini {
-    margin: 0;
-    width: 20px;
-    aspect-ratio: 1;
-    border-radius: 50%;
-    border: 2px solid var(--sepia-200);
-    border-right-color: var(--sepia-500);
-    animation: rotate 1s infinite linear;
-  }
-
-  @keyframes rotate {
-    to {
-      transform: rotate(1turn);
-    }
-  }
-
-  /* Card deal-in animation */
-  @keyframes deal-in {
-    from {
-      opacity: 0;
-      transform: scale(0.95) rotate(-3deg) translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: scale(1) rotate(0deg) translateY(0);
-    }
-  }
-
-  /* ===== About page rendered content ===== */
-
-  .about-content p {
-    margin-bottom: 1.25rem;
-    font-size: 1rem;
-    line-height: 2;
-    color: var(--sepia-800);
-  }
-
-  html.dark .about-content p {
-    color: var(--sepia-200);
-  }
-
-  .about-content p:has(> br:only-child) {
-    margin-bottom: 0.5rem;
-  }
-
-  /* --- Headings with decorative underline --- */
-  .about-content h1 {
-    font-size: 2rem;
-    font-weight: 700;
-    margin-top: 3rem;
-    margin-bottom: 1.25rem;
-    padding-bottom: 0.75rem;
-    color: var(--sepia-900);
-    border-bottom: 1px solid var(--sepia-300);
-  }
-
-  .about-content h2 {
-    font-size: 1.5rem;
-    font-weight: 700;
-    margin-top: 2.5rem;
-    margin-bottom: 1rem;
-    padding-bottom: 0.5rem;
-    color: var(--sepia-900);
-    position: relative;
-  }
-
-  .about-content h2::after {
-    content: "";
-    display: block;
-    width: 3rem;
-    height: 2px;
-    background-color: var(--sepia-400);
-    margin-top: 0.5rem;
-  }
-
-  .about-content h3 {
-    font-size: 1.25rem;
-    font-weight: 600;
-    margin-top: 2rem;
-    margin-bottom: 0.75rem;
-    color: var(--sepia-700);
-    letter-spacing: 0.03em;
-  }
-
-  html.dark .about-content h1 {
-    color: var(--cream);
-    border-bottom-color: var(--sepia-700);
-  }
-
-  html.dark .about-content h2 {
-    color: var(--cream);
-  }
-
-  html.dark .about-content h2::after {
-    background-color: var(--sepia-500);
-  }
-
-  html.dark .about-content h3 {
-    color: var(--sepia-300);
-  }
-
-  /* --- Images with vintage frame --- */
-  .about-content figure {
-    margin: 2.5rem 0;
-    max-width: 100%;
-    overflow: hidden;
-  }
-
-  .about-content figure img,
-  .about-content figure .about-img {
-    width: 100%;
-    height: auto;
-    border-radius: 2px;
-    border: 1px solid var(--sepia-200);
-    box-shadow:
-      inset 0 0 0 1px var(--sepia-100),
-      0 4px 16px rgba(166, 124, 82, 0.12);
-    background-color: var(--sepia-100);
-  }
-
-  html.dark .about-content figure img,
-  html.dark .about-content figure .about-img {
-    border-color: var(--sepia-700);
-    box-shadow:
-      inset 0 0 0 1px var(--sepia-800),
-      0 4px 16px rgba(0, 0, 0, 0.25);
-  }
-
-  .about-content figcaption {
-    text-align: center;
-    font-size: 0.75rem;
-    color: var(--sepia-500);
-    margin-top: 0.75rem;
-    font-style: italic;
-    letter-spacing: 0.05em;
-  }
-
-  html.dark .about-content figcaption {
-    color: var(--sepia-400);
-  }
-
-  /* --- Lists --- */
-  .about-content ul,
-  .about-content ol {
-    margin-bottom: 1.5rem;
-    padding-left: 1.75rem;
-    color: var(--sepia-800);
-  }
-
-  html.dark .about-content ul,
-  html.dark .about-content ol {
-    color: var(--sepia-200);
-  }
-
-  .about-content ul { list-style-type: "✦  "; }
-  .about-content ol { list-style-type: decimal; }
-
-  .about-content li {
-    margin-bottom: 0.5rem;
-    line-height: 1.8;
-    padding-left: 0.25rem;
-  }
-
-  .about-content li::marker {
-    color: var(--sepia-400);
-  }
-
-  html.dark .about-content li::marker {
-    color: var(--sepia-500);
-  }
-
-  /* --- Links --- */
-  .about-content a {
-    color: var(--sepia-500);
-    text-decoration: underline;
-    text-underline-offset: 4px;
-    text-decoration-color: var(--sepia-300);
-    text-decoration-thickness: 1px;
-    transition: color 0.2s, text-decoration-color 0.2s;
-  }
-
-  .about-content a:hover {
-    color: var(--sepia-700);
-    text-decoration-color: var(--sepia-500);
-  }
-
-  html.dark .about-content a {
-    color: var(--sepia-400);
-    text-decoration-color: var(--sepia-600);
-  }
-
-  html.dark .about-content a:hover {
-    color: var(--sepia-300);
-    text-decoration-color: var(--sepia-400);
-  }
-
-  /* --- Inline code --- */
-  .about-content code {
-    background-color: var(--sepia-100);
-    color: var(--sepia-700);
-    padding: 0.2em 0.45em;
-    border-radius: 3px;
-    font-size: 0.875em;
-    border: 1px solid var(--sepia-200);
-  }
-
-  html.dark .about-content code {
-    background-color: var(--sepia-800);
-    color: var(--sepia-300);
-    border-color: var(--sepia-700);
-  }
-
-  /* --- Divider --- */
-  .about-content hr {
-    border: none;
-    height: 0;
-    border-bottom: 1px solid var(--sepia-300);
-    margin: 2.5rem 0;
-  }
-
-  html.dark .about-content hr {
-    border-bottom-color: var(--sepia-700);
-  }
-
-  /* --- Blockquote --- */
-  .about-content blockquote {
-    border-left: 3px solid var(--sepia-400);
-    padding: 1rem 1.5rem;
-    margin: 2rem 0;
-    color: var(--sepia-700);
-    font-style: italic;
-    background-color: var(--sepia-50, #fefcf6);
-    border-radius: 0 4px 4px 0;
-  }
-
-  html.dark .about-content blockquote {
-    border-left-color: var(--sepia-500);
-    color: var(--sepia-300);
-    background-color: rgba(51, 47, 41, 0.3);
-  }
-
-  /* --- Code block --- */
-  .about-content pre {
-    background-color: var(--sepia-900);
-    color: var(--sepia-200);
-    padding: 1.5rem;
-    border-radius: 4px;
-    overflow-x: auto;
-    margin: 2rem 0;
-    font-size: 0.875rem;
-    line-height: 1.7;
-    border: 1px solid var(--sepia-800);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  }
-
-  .about-content pre code {
-    background: none;
-    color: inherit;
-    padding: 0;
-    font-size: inherit;
-    border-radius: 0;
-    border: none;
-  }
-
-  /* --- Table --- */
-  .about-content table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 2rem 0;
-    font-size: 0.9rem;
-    border: 1px solid var(--sepia-200);
-    border-radius: 4px;
-    overflow: hidden;
-  }
-
-  .about-content th,
-  .about-content td {
-    border: 1px solid var(--sepia-200);
-    padding: 0.75rem 1rem;
-    text-align: left;
-  }
-
-  .about-content th {
-    background-color: var(--sepia-100);
-    font-weight: 600;
-    color: var(--sepia-800);
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
-    font-size: 0.8rem;
-  }
-
-  .about-content tr:nth-child(even) td {
-    background-color: rgba(245, 239, 227, 0.4);
-  }
-
-  html.dark .about-content table {
-    border-color: var(--sepia-700);
-  }
-
-  html.dark .about-content th,
-  html.dark .about-content td {
-    border-color: var(--sepia-700);
-  }
-
-  html.dark .about-content th {
-    background-color: var(--sepia-800);
-    color: var(--cream);
-  }
-
-  html.dark .about-content tr:nth-child(even) td {
-    background-color: rgba(51, 47, 41, 0.3);
-  }
-
-  /* --- Checklist --- */
-  .about-content .check-list {
-    list-style: none;
-    padding-left: 0;
-    margin-bottom: 1.5rem;
-  }
-
-  .about-content .check-list-item {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.65rem;
-    margin-bottom: 0.5rem;
-    line-height: 1.8;
-  }
-
-  .about-content .check-list-item input[type="checkbox"] {
-    margin-top: 0.45rem;
-    accent-color: var(--sepia-500);
-    width: 1rem;
-    height: 1rem;
-    flex-shrink: 0;
-  }
-
-  /* --- Media --- */
-  .about-content video,
-  .about-content audio {
-    width: 100%;
-    border-radius: 4px;
-    margin: 1.5rem 0;
-    border: 1px solid var(--sepia-200);
-  }
-
-  html.dark .about-content video,
-  html.dark .about-content audio {
-    border-color: var(--sepia-700);
-  }
-
-  /* --- Toggle list --- */
-  .about-content details {
-    margin-bottom: 0.75rem;
-    border: 1px solid var(--sepia-200);
-    border-radius: 4px;
-    overflow: hidden;
-  }
-
-  .about-content details summary {
-    cursor: pointer;
-    padding: 0.75rem 1rem;
-    font-weight: 600;
-    color: var(--sepia-800);
-    background-color: var(--sepia-50, #fefcf6);
-    list-style: none;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  .about-content details summary::before {
-    content: "▸";
-    display: inline-block;
-    transition: transform 0.2s;
-    color: var(--sepia-400);
-  }
-
-  .about-content details[open] summary::before {
-    transform: rotate(90deg);
-  }
-
-  .about-content details summary::-webkit-details-marker {
-    display: none;
-  }
-
-  .about-content details > *:not(summary) {
-    padding: 0.75rem 1rem 0.75rem 2rem;
-  }
-
-  html.dark .about-content details {
-    border-color: var(--sepia-700);
-  }
-
-  html.dark .about-content details summary {
-    color: var(--cream);
-    background-color: rgba(51, 47, 41, 0.3);
-  }
-
-  html.dark .about-content details summary::before {
-    color: var(--sepia-500);
-  }
-
-  /* --- Nested/indented content --- */
-  .about-content .bn-nested {
-    margin-left: 2.5rem;
-  }
-
-  /* --- Bold / Strong --- */
-  .about-content strong {
-    font-weight: 700;
-    color: var(--sepia-900);
-  }
-
-  html.dark .about-content strong {
-    color: var(--cream);
-  }
-
-  /* --- Scroll reveal animations --- */
-  .scroll-reveal {
-    will-change: transform, opacity;
-    transition: opacity 0.7s ease, transform 0.7s ease;
-  }
-
-  .scroll-reveal.fade-up {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-
-  .scroll-reveal.fade-in {
-    opacity: 0;
-  }
-
-  .scroll-reveal.slide-left {
-    opacity: 0;
-    transform: translateX(-40px);
-  }
-
-  .scroll-reveal.slide-right {
-    opacity: 0;
-    transform: translateX(40px);
-  }
-
-  .scroll-reveal.deal-in {
-    opacity: 0;
-    transform: scale(0.92) rotate(-3deg) translateY(20px);
-  }
-
-  .scroll-reveal.scale-in {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-
-  .scroll-reveal.is-visible {
-    opacity: 1;
-    transform: none;
-  }
-
-  /* --- Typewriter stamp effect --- */
-  @keyframes stamp {
-    0% {
-      opacity: 0.4;
-      transform: scale(1.3);
-    }
-    50% {
-      opacity: 1;
-      transform: scale(0.97);
-    }
-    100% {
-      opacity: 1;
-      transform: scale(1);
-    }
-  }
-
-  .typewriter-stamp {
-    animation: stamp 0.1s ease-out;
-  }
-
-  /* Staggered animation delays */
-  .stagger-1 {
-    animation-delay: 0.15s;
-  }
-  .stagger-2 {
-    animation-delay: 0.4s;
-  }
-  .stagger-3 {
-    animation-delay: 0.65s;
-  }
-  .stagger-4 {
-    animation-delay: 0.9s;
-  }
+    border: 1px solid var(--border);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+
+  /* ── Staggered entry animations (résumé) ────────────────────────── */
+  @keyframes fadeIn    { from { opacity: 0; }                          to { opacity: 1; } }
+  @keyframes fadeInUp  { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+  .animate-fade-in    { animation: fadeIn   1s ease-out forwards; }
+  .animate-fade-in-up { animation: fadeInUp 1s ease-out forwards; }
+
+  .stagger-1 { animation-delay: 0.15s; }
+  .stagger-2 { animation-delay: 0.40s; }
+  .stagger-3 { animation-delay: 0.65s; }
+  .stagger-4 { animation-delay: 0.90s; }
+
+  /* ── Privacy link ───────────────────────────────────────────────── */
+  /* A quiet link in the bottom-right corner, in normal flow (not fixed) so it
+     sits at the very bottom of the page. Present site-wide for Google OAuth
+     brand verification, but out of the way. */
+  .site-privacy {
+    position: absolute;   /* pinned to the document's bottom-right (body is
+                             position:relative) — at the very bottom, but scrolls
+                             with the page rather than floating like fixed. */
+    right: 16px;
+    bottom: 12px;
+    z-index: 10;
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    color: color-mix(in oklch, var(--soft), transparent 35%);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .site-privacy:hover { color: var(--accent); }
+  @media print { .site-privacy { display: none; } }
 }

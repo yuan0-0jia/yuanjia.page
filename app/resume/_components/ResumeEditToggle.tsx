@@ -17,7 +17,7 @@ const ResumeEditor = dynamic(() => import("./ResumeEditor"), {
 
 /**
  * Wraps the read-only ResumeScreen. When the authenticated user has
- * toggled edit mode in the NavBar, swap in the editor instead.
+ * toggled edit mode, swap in the editor instead.
  * Print layout is rendered separately by the page and not affected.
  */
 export default function ResumeEditToggle({

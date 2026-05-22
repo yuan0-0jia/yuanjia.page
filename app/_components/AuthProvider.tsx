@@ -7,12 +7,14 @@ type AuthContextType = {
   isAuthenticated: boolean;
   isEditMode: boolean;
   toggleEditMode: () => void;
+  setEditMode: (v: boolean) => void;
 };
 
 const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
   isEditMode: false,
   toggleEditMode: () => {},
+  setEditMode: () => {},
 });
 
 export function useAuth() {
@@ -54,7 +56,9 @@ export default function AuthProvider({
   const toggleEditMode = () => setIsEditMode((prev) => !prev);
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, isEditMode, toggleEditMode }}>
+    <AuthContext.Provider
+      value={{ isAuthenticated, isEditMode, toggleEditMode, setEditMode: setIsEditMode }}
+    >
       {children}
     </AuthContext.Provider>
   );

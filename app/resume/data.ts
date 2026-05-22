@@ -307,7 +307,7 @@ function normalizeCustomSections(raw: unknown): CustomSection[] | undefined {
 
 export const RESUME: Resume = {
   name: "Yuan Jia",
-  tagline: "Software Engineer",
+  tagline: "Platform engineer building with AI coding agents",
   location: "Santa Clara, CA",
   lastUpdated: "May 2026",
   sectionTitles: { ...DEFAULT_SECTION_TITLES },
@@ -352,6 +352,19 @@ export const RESUME: Resume = {
 
   skills: [
     {
+      name: "AI Tools",
+      items: [
+        "Claude Code",
+        "Codex CLI",
+        "Copilot CLI",
+        "Gemini CLI",
+        "Anthropic API",
+        "OpenAI API",
+        "agent workflow design (spec→plan→execute)",
+        "parallel git-worktree sessions",
+      ],
+    },
+    {
       name: "Languages",
       items: ["TypeScript", "Python", "Bash", "C/C++"],
     },
@@ -374,35 +387,22 @@ export const RESUME: Resume = {
         "PostgreSQL",
         "k3s",
         "Actions Runner Controller",
-        "Nginx",
         "Tailscale",
         "GitHub Actions",
         "Linux/Ubuntu",
       ],
     },
     {
-      name: "Testing & Tooling",
-      items: [
-        "Vitest",
-        "Playwright",
-        "pytest",
-        "bats",
-        "tree-sitter",
-        "ruff",
-        "uv",
-      ],
-    },
-    {
-      name: "AI Tools",
-      items: ["Claude Code", "Anthropic API", "OpenAI API", "Gemini CLI"],
+      name: "Testing",
+      items: ["Vitest", "Playwright", "pytest", "bats", "tree-sitter"],
     },
   ] satisfies SkillCategory[],
 
   projects: [
     {
       name: "Flyer",
-      title: "Platform Engineer (Co-author on a 5-person team)",
-      period: "2026 – Present",
+      title: "Platform Engineer · 5-person agent-driven team",
+      period: "2025 – Present",
       link: { label: "joinflyer.com", href: "https://joinflyer.com" },
       stack: [
         "TypeScript",
@@ -411,45 +411,40 @@ export const RESUME: Resume = {
         "NextAuth v5",
         "Docker",
         "AWS EC2 Graviton (ARM64)",
+        "Claude Code / Copilot CLI",
       ],
       summary:
-        "Production event platform for college communities; owned the deploy pipeline, security hardening, and disaster recovery.",
+        "Production event platform built ground-up by a 5-person team driving AI coding agents (~70k LOC). Engineered the guardrails — deploy pipeline, security, disaster recovery — that make agent-driven shipping safe.",
       bullets: [
-        "**Built a 3-mode GitHub Actions deploy workflow** with post-deploy SHA probe + auto-rollback via a `.deploy-history` ledger — broken-deploy MTTR ~90s.",
-        "**Built a `wait-for-ci` gate on auto-deploy** — polls the GitHub Actions API for the deploy SHA (15s interval, 15min cap) and blocks promotion until CI concludes green; closes a race where deploys could ship ahead of in-flight CI on the same commit.",
-        "**Restricted the CI deploy SSH key with an `authorized_keys` forced-command wrapper** — strict `IMAGE_TAG` regex, op allowlist, audited invocations; a leaked key can't open a shell.",
-        "**Built a schema-versioned deploy state machine in Bash** — one remote `flock` for the full lifecycle + a `peek_claim` gate on drift CI; two prod-mutating ops can't interleave.",
-        "**Shipped daily PostgreSQL → S3 backups** with `pg_dump | gzip` integrity checks, 14-day lifecycle, EC2 instance-profile auth (no static AWS keys); verified via live restore drill from prod.",
-        "**Migrated PostgreSQL from superuser to a least-privilege role** via idempotent `public`-schema ownership transfer — SQL-injection blast radius cut from full DBA to app-scoped data.",
-        "**Stripped a JWT-payload PII leak from proxy logs** — every authenticated request was logging the decoded session token (email, name, image URL, admin state); replaced with safe diagnostics scoped to the unauthenticated redirect path.",
-        "**Hardened CI against supply-chain + drift risks** — SHA-pinned third-party actions, an SSH-based prod-drift check, and `shellcheck` + `bats` coverage on every infra script.",
-        "**Migrated 100% of CI + deploy jobs onto self-hosted homelab runner pools** — ephemeral pods across three pools (mac-mini, Dell async, M2 ARM64) in the Tailscale mesh, including the path-filter fan-out gate; CI rode through a May 2026 GitHub Actions billing outage that would've blocked any hosted-runner job.",
-        "**Led the production domain cutover** from `heywhatsup.app` to `joinflyer.com` — DNS, dual Let's Encrypt certs, host-based 301s, Resend DKIM swap, NextAuth + Google OAuth callbacks, PWA service-worker cache-name bump.",
+        "**Designed a multi-mode GitHub Actions deploy workflow** with post-deploy health probes and auto-rollback from a deploy-history ledger — a bad agent-authored deploy reverts itself in under two minutes.",
+        "**Built a deploy state machine in Bash** with remote locking, drift detection, and a CI-gating layer that blocks promotion until tests for the exact deploy commit pass — two prod-mutating ops can't interleave even when multiple agent sessions race the same branch.",
+        "**Locked down the CI deploy key** with a forced-command wrapper, strict argument allowlist, and audited invocations — a leaked key (or a misbehaving agent) can't open an interactive shell.",
+        "**Hardened the stack end-to-end** — daily encrypted Postgres → S3 backups (verified via live restore), migrated off a DB superuser to a least-privilege role, closed a PII leak in proxy logs, and SHA-pinned third-party actions with shell linting + bats coverage on every infra script.",
+        "**Migrated all CI + deploy jobs onto self-hosted runner pools** behind a Tailscale mesh — ephemeral pods per job, zero idle compute; CI rode through a hosted-runner billing outage that would've blocked any cloud-runner job.",
       ],
     },
     {
       name: "Homelab",
-      title: "Self-hosted CI on a k3s cluster",
+      title: "Self-hosted CI for the agent-built pipeline",
       period: "2026 – Present",
       stack: [
         "k3s",
-        "Actions Runner Controller (ARC)",
+        "Actions Runner Controller",
         "GitHub Actions",
         "Tailscale",
         "Ubuntu 24.04",
-        "containerd",
         "Lima (Apple Silicon arm64 VM)",
       ],
       summary:
-        "Three-node mixed-arch k3s cluster — Dell desktop + Mac mini on Ubuntu 24.04 (Intel) + an Ubuntu-ARM64 Lima VM on an M2 MacBook (Apple Silicon); hosts ephemeral GitHub Actions runner pools for Flyer across three roles.",
+        "Mixed-arch k3s cluster on repurposed Intel + Apple Silicon hardware; hosts ephemeral GitHub Actions runner pools that keep Flyer's agent-built CI cheap, fast, and outage-resilient.",
       bullets: [
-        "**Built a 3-node mixed-arch k3s cluster** on repurposed hardware — Dell desktop + Mac mini on Ubuntu 24.04 (Intel) + an Ubuntu-ARM64 Lima VM on an M2 MacBook — running **Actions Runner Controller (ARC)** across three scale sets (`homelab`, `homelab-async`, `homelab-arm64`); each Flyer CI job spawns an ephemeral pod (clean filesystem per job, zero idle compute).",
-        "**Cut Flyer CI wall-clock 31:30 → ~7:50 (~75%) end-to-end** — staged through a custom multi-arch runner image (psql, `docker compose` v2, Playwright deps, `shellcheck`/`bats`/`actionlint` baked in), k3s `hostPath` caches replacing `actions/cache`, an x86 two-pool split, and an M2 ARM64 pool that runs build + CPU-heavy test jobs arm64-native (no QEMU emulation).",
+        "**Built a mixed-arch k3s cluster on repurposed Intel + Apple Silicon hardware** running Actions Runner Controller — each CI job spawns an ephemeral pod (clean filesystem, zero idle compute).",
+        "**Cut Flyer CI wall-clock by ~75% end-to-end** with a custom multi-arch runner image, in-cluster caches replacing hosted artifact caches, and an arm64-native pool that skips QEMU emulation for build + heavy test jobs.",
       ],
     },
     {
       name: "StyleBench",
-      title: "Master's Capstone Research Project",
+      title: "Master's Capstone — Empirical Study of AI Coding Agents",
       repo: {
         label: "github.com/yuan0-0jia/stylebench",
         href: "https://github.com/yuan0-0jia/stylebench",
@@ -465,11 +460,11 @@ export const RESUME: Resume = {
         "ruff",
       ],
       summary:
-        "Empirical study of whether code style affects AI coding-agent bug-fix performance.",
+        "Empirical study of whether code style affects AI coding-agent bug-fix performance — a head-to-head benchmark of Claude Code, Codex CLI, and Gemini CLI under controlled stylistic variants.",
       bullets: [
-        "**Ran a 1,920-trial benchmark** measuring whether code style affects AI coding-agent bug-fix rates — 4 Python projects (~20k LOC, 3,039 tests), 6 styles, 14 mutation types, 2 evaluation modes.",
-        "**Built a tree-sitter AST transformation framework** (whitelist renames, `pytest.mark.parametrize` syncing) + a multi-agent harness with Claude Code / Codex CLI / Gemini CLI adapters — checkpoint-resume on rate limits, manifest mode for byte-identical input across agents, process-group termination on timeout.",
-        "**Code style had no statistically significant effect on fix rate** (p = 0.998; 1pp spread); repository difficulty (28pp) and mutation type (29pp) dominated.",
+        "**Ran a ~2,000-trial benchmark** of Claude Code / Codex CLI / Gemini CLI on real-world bug-fix tasks across 4 Python projects (~20k LOC, 3,000+ tests), 6 stylistic variants, and 14 mutation types.",
+        "**Built a tree-sitter AST transformation framework** + a multi-agent harness with pluggable CLI adapters — checkpoint-resume on rate limits, deterministic manifest mode for byte-identical inputs, and process-group cleanup on timeout.",
+        "**Code style had no statistically significant effect on agent fix rate** (p ≈ 1.0, ~1pp spread); repository difficulty and mutation type dominated by ~30pp each.",
       ],
     },
   ] satisfies Entry[],

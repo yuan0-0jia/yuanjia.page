@@ -13,16 +13,12 @@ export async function getAvatar() {
   return data;
 }
 
-export async function getProjects() {
-  const supabase = await createClient();
-  const { data, error } = await supabase.from("projects").select("*");
-
-  if (error) {
-    console.error("Projects could not be loaded:", error);
-    return [];
-  }
-
-  return data;
+/** The profile-photo URL from the `avatar` table (singleton row id=1). */
+export async function getAvatarUrl(): Promise<string | null> {
+  const data = await getAvatar();
+  const row =
+    data?.find((a: { id: number; image: string }) => a.id === 1) ?? data?.[0];
+  return row?.image ?? null;
 }
 
 /**
@@ -57,7 +53,7 @@ export async function getResumeData(): Promise<Resume | null> {
   return raw ? normalizeResume(raw) : null;
 }
 
-export async function getAboutContent() {
+export async function getBio(): Promise<string | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("about")
@@ -66,11 +62,19 @@ export async function getAboutContent() {
     .single();
 
   if (error) {
-    console.error(error);
+    if (error.code !== "PGRST116") console.error(error);
     return null;
   }
 
-  return data?.content_json;
+  const raw = data?.content_json;
+  // New format: {bio: "..."}
+  if (raw && typeof raw === "object" && "bio" in raw) return String(raw.bio);
+  // Legacy BlockNote format: extract first paragraph text
+  if (Array.isArray(raw) && raw.length > 0) {
+    const first = raw[0] as { content?: Array<{ text?: string }> };
+    return first.content?.map((c) => c.text ?? "").join("") ?? null;
+  }
+  return null;
 }
 
 const FLICKR_API_BASE = "https://www.flickr.com/services/rest";
@@ -116,46 +120,4 @@ export async function getFlickrPhotos() {
       src: photo.url_b || `https://live.staticflickr.com/${photo.server}/${photo.id}_${photo.secret}_b.jpg`,
     })
   );
-}
-
-export async function getPhotoExif(photoId: string) {
-  const apiKey = process.env.FLICKR_API_KEY;
-  if (!apiKey) return null;
-
-  const url = `${FLICKR_API_BASE}/?method=flickr.photos.getExif&api_key=${apiKey}&photo_id=${photoId}&format=json&nojsoncallback=1`;
-
-  const res = await fetch(url, { next: { revalidate: 86400 } });
-
-  if (!res.ok) return null;
-
-  const data = await res.json();
-
-  if (data.stat !== "ok" || !data.photo?.exif) return null;
-
-  const exifTags = data.photo.exif as Array<{
-    tag: string;
-    label: string;
-    raw: { _content: string };
-    clean?: { _content: string };
-  }>;
-
-  const getTag = (tag: string) => {
-    const found = exifTags.find((t) => t.tag === tag);
-    return found?.clean?._content || found?.raw?._content || null;
-  };
-
-  const getRawTag = (tag: string) => {
-    const found = exifTags.find((t) => t.tag === tag);
-    return found?.raw?._content || found?.clean?._content || null;
-  };
-
-  return {
-    camera: getTag("Model"),
-    lens: getTag("LensModel") || getTag("Lens"),
-    aperture: getTag("FNumber"),
-    shutter: getRawTag("ExposureTime"),
-    iso: getTag("ISO"),
-    focalLength: getTag("FocalLength"),
-    film: getTag("ImageDescription") || getTag("Film"),
-  };
 }

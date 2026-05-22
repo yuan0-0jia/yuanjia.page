@@ -1,27 +1,44 @@
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
-import { Special_Elite, Lora } from "next/font/google";
+import { Newsreader, Instrument_Sans, Kalam, JetBrains_Mono } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Suspense } from "react";
+import Link from "next/link";
 import AuthErrorToast from "./_components/AuthErrorToast";
 import AuthProvider from "./_components/AuthProvider";
-import { Footer } from "./_components/Footer";
-import NavBar from "./_components/NavBar";
+import { StatusBar } from "./_components/StatusBar";
+import { DockProvider } from "./_components/DockProvider";
 import { ThemeProviders } from "./_components/ThemeProvider";
 import "./globals.css";
 
-const specialElite = Special_Elite({
-  weight: "400",
+const newsreader = Newsreader({
   subsets: ["latin"],
-  variable: "--font-typewriter",
+  axes: ["opsz"],
+  style: ["normal", "italic"],
+  weight: "variable",
+  variable: "--font-serif",
   display: "swap",
 });
 
-const lora = Lora({
+const instrumentSans = Instrument_Sans({
   subsets: ["latin"],
-  variable: "--font-serif",
+  weight: ["400", "500", "600"],
+  variable: "--font-sans",
   display: "swap",
-  weight: ["400", "500", "600", "700"],
+});
+
+const kalam = Kalam({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  variable: "--font-hand",
+  display: "swap",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  variable: "--font-mono",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -48,15 +65,17 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
+  modal,
 }: Readonly<{
   children: React.ReactNode;
+  modal?: React.ReactNode;
 }>) {
   return (
     <html
       lang="en"
       suppressHydrationWarning
       data-scroll-behavior="smooth"
-      className={`${specialElite.variable} ${lora.variable}`}
+      className={`${newsreader.variable} ${instrumentSans.variable} ${kalam.variable} ${jetbrainsMono.variable}`}
     >
       <head>
         <link
@@ -71,16 +90,23 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://live.staticflickr.com" />
       </head>
       <body
-        className={`antialiased flex flex-col relative min-h-screen bg-cream dark:bg-warmGray-900 text-warmGray-800 dark:text-cream transition-colors font-serif`}
+        className={`antialiased flex flex-col relative min-h-screen bg-[--paper] text-[--ink] font-sans pb-28`}
       >
         <ThemeProviders>
           <AuthProvider>
-            <Suspense>
-              <AuthErrorToast />
-            </Suspense>
-            <NavBar />
-            {children}
-            <Footer />
+            <DockProvider>
+              <Suspense>
+                <AuthErrorToast />
+              </Suspense>
+              {children}
+              {modal}
+              <StatusBar />
+              {/* Privacy lives here (not the status bar) — unobtrusive, but
+                  present on every page for Google OAuth brand verification. */}
+              <Link href="/privacy" className="site-privacy">
+                privacy
+              </Link>
+            </DockProvider>
           </AuthProvider>
         </ThemeProviders>
         <SpeedInsights />

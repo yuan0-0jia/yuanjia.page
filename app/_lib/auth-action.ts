@@ -29,10 +29,11 @@ export async function login() {
   }
 }
 
+// Clears the session only — the caller does a full reload to /?auth=out so the
+// terminal remounts (refreshing auth state + showing the sign-out indicator).
 export async function logout() {
   const supabase = await createClient();
   await supabase.auth.signOut();
-  redirect("/");
 }
 
 export async function getUser() {
@@ -41,270 +42,74 @@ export async function getUser() {
   return supabase.auth.getUser();
 }
 
-export async function updateAva(formData: FormData) {
+/**
+ * Replace the profile avatar. Auth-gated. Uploads the image to the `photos`
+ * storage bucket under a timestamped name (so the public URL changes and no
+ * stale CDN copy is served), then points the singleton avatar row (id=1) at it.
+ */
+export async function updateAvatar(formData: FormData) {
   const { data, error } = await getUser();
   if (error || !data?.user) throw new Error("You must be logged in");
 
-  const id = formData.get("id") as string | null; // Type assertion for id
-  const image = formData.get("image"); // This can be a File or null
-
-  // Check if image is a File and handle it
-  if (!(image instanceof File)) {
-    throw new Error("Image file is required and must be a File type");
+  const image = formData.get("image");
+  if (!(image instanceof File) || image.size === 0) {
+    throw new Error("An image file is required");
   }
 
   const supabase = await createClient();
 
-  const imageName = image.name.replaceAll("/", ""); // Sanitize image name
-  const imagePath = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/photos/${imageName}`;
-  const hasImagePath = imagePath.startsWith(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!
-  );
+  const safeName = image.name.replaceAll("/", "").replace(/\s+/g, "_");
+  const objectName = `avatar-${Date.now()}-${safeName}`;
+  const publicUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/photos/${objectName}`;
 
-  const query = supabase.from("avatar");
-
-  // Use update method only if id is present
-  if (id) {
-    // Perform the update operation
-    const { error: updateError } = await query
-      .update({ image: hasImagePath ? imagePath : imageName }) // Use imageName if it's a new upload
-      .eq("id", id);
-
-    if (updateError) {
-      console.error(updateError);
-      throw new Error("Ava could not be updated");
-    }
-  }
-
-  // Upload the image to Supabase Storage
   const { error: storageError } = await supabase.storage
     .from("photos")
-    .upload(imageName, image, { upsert: true });
+    .upload(objectName, image, { upsert: true, contentType: image.type });
 
   if (storageError) {
-    // If storage fails, delete the avatar if it was created
-    if (id) {
-      await supabase.from("avatar").delete().eq("id", id);
-    }
-    console.error(storageError);
-    throw new Error("Ava could not be uploaded, ava was not created");
-  }
-
-  // Optionally handle revalidation after the upload
-  revalidatePath("/", "layout");
-}
-
-export async function updateProject(formData: FormData) {
-  const { data, error } = await getUser();
-  if (error || !data?.user) throw new Error("You must be logged in");
-
-  const id = formData.get("id") as string;
-  const project = formData.get("project") as string;
-  const desc = formData.get("desc") as string;
-  const image = formData.get("image") as File | null;
-  const to = formData.get("to") as string;
-  const button = formData.get("button") as string;
-  const preview_url = formData.get("preview_url") as string | null;
-
-  if (!id || !project || !desc || !to || !button) {
-    throw new Error("Required fields are missing");
-  }
-
-  const supabase = await createClient();
-
-  let imagePath = formData.get("currentImage") as string | null;
-
-  // Handle image upload if a new image is provided
-  if (image instanceof File && image.size > 0) {
-    const imageName = image.name.replaceAll("/", "");
-    const newImagePath = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/photos/${imageName}`;
-    const hasImagePath = newImagePath.startsWith(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!
-    );
-
-    // Upload the new image
-    const { error: storageError } = await supabase.storage
-      .from("photos")
-      .upload(imageName, image, { upsert: true });
-
-    if (storageError) {
-      console.error(storageError);
-      throw new Error("Project image could not be uploaded");
-    }
-
-    imagePath = hasImagePath ? newImagePath : imageName;
-  }
-
-  // Update the project
-  const updateData: {
-    project: string;
-    desc: string;
-    to: string;
-    button: string;
-    thumbnail?: string;
-    preview_url?: string | null;
-  } = {
-    project,
-    desc,
-    to,
-    button,
-    preview_url: preview_url || null,
-  };
-
-  // Only include thumbnail in update if a new image was provided
-  if (image instanceof File && imagePath) {
-    updateData.thumbnail = imagePath;
+    console.error("[avatar] upload error:", storageError);
+    throw new Error(`Avatar could not be uploaded: ${storageError.message}`);
   }
 
   const { error: updateError } = await supabase
-    .from("projects")
-    .update(updateData)
-    .eq("id", id);
+    .from("avatar")
+    .update({ image: publicUrl })
+    .eq("id", 1);
 
   if (updateError) {
-    console.error(updateError);
-    throw new Error("Project could not be updated");
+    console.error("[avatar] row update error:", updateError);
+    throw new Error(`Avatar uploaded but the record update failed: ${updateError.message}`);
   }
 
   revalidatePath("/", "layout");
 }
 
-export async function createProject(formData: FormData) {
-  const { data, error } = await getUser();
-  if (error || !data?.user) throw new Error("You must be logged in");
-
-  const project = formData.get("project") as string;
-  const desc = formData.get("desc") as string;
-  const image = formData.get("image") as File | null;
-  const to = formData.get("to") as string;
-  const button = formData.get("button") as string;
-  const preview_url = formData.get("preview_url") as string | null;
-
-  if (!project || !desc || !to || !button) {
-    throw new Error("Required fields are missing");
-  }
-
-  const supabase = await createClient();
-
-  let imagePath: string | null = null;
-
-  // Handle image upload if an image is provided and has content
-  if (image instanceof File && image.size > 0) {
-    const imageName = image.name.replaceAll("/", "");
-    const newImagePath = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/photos/${imageName}`;
-    const hasImagePath = newImagePath.startsWith(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!
-    );
-
-    // Upload the image
-    const { error: storageError } = await supabase.storage
-      .from("photos")
-      .upload(imageName, image, { upsert: true });
-
-    if (storageError) {
-      console.error(storageError);
-      throw new Error("Project image could not be uploaded");
-    }
-
-    imagePath = hasImagePath ? newImagePath : imageName;
-  }
-
-  // Create the project with thumbnail as null if no image provided
-  const insertData: {
-    project: string;
-    desc: string;
-    to: string;
-    button: string;
-    thumbnail: string | null;
-    preview_url: string | null;
-  } = {
-    project,
-    desc,
-    to,
-    button,
-    thumbnail: imagePath,
-    preview_url: preview_url || null,
-  };
-
-  const { error: insertError } = await supabase
-    .from("projects")
-    .insert(insertData);
-
-  if (insertError) {
-    console.error(insertError);
-    throw new Error("Project could not be created");
-  }
-
-  revalidatePath("/", "layout");
-}
-
-export async function deleteProject(formData: FormData) {
-  const { data, error } = await getUser();
-  if (error || !data?.user) throw new Error("You must be logged in");
-
-  const id = formData.get("id") as string;
-
-  if (!id) {
-    throw new Error("Project ID is required");
-  }
-
-  const supabase = await createClient();
-
-  // Delete the project
-  const { error: deleteError } = await supabase
-    .from("projects")
-    .delete()
-    .eq("id", id);
-
-  if (deleteError) {
-    console.error(deleteError);
-    throw new Error("Project could not be deleted");
-  }
-
-  revalidatePath("/", "layout");
-}
-
-export async function reorderProjects(orderedIds: string[]) {
+/**
+ * Replace the about.md bio. Auth-gated. Writes `{ bio }` to the `about` table's
+ * singleton row (id=0, content_json JSONB) and revalidates the homepage.
+ */
+export async function updateBio(bio: string) {
   const { data, error } = await getUser();
   if (error || !data?.user) throw new Error("You must be logged in");
 
   const supabase = await createClient();
-
-  // Update each project's sort_order based on its position in the array
-  for (let i = 0; i < orderedIds.length; i++) {
-    const { error: updateError } = await supabase
-      .from("projects")
-      .update({ sort_order: i })
-      .eq("id", orderedIds[i]);
-
-    if (updateError) {
-      console.error(updateError);
-      throw new Error("Projects could not be reordered");
-    }
-  }
-
-  revalidatePath("/", "layout");
-}
-
-export async function updateAboutContent(contentJson: unknown) {
-  const { data, error } = await getUser();
-  if (error || !data?.user) throw new Error("You must be logged in");
-
-  const supabase = await createClient();
-
-  // Upsert the content JSON into the about table (id=0 row)
-  const { error: upsertError } = await supabase
+  const { data: updated, error: updateError } = await supabase
     .from("about")
-    .update({ content_json: contentJson })
-    .eq("id", 0);
+    .update({ content_json: { bio } })
+    .eq("id", 0)
+    .select();
 
-  if (upsertError) {
-    console.error(upsertError);
-    throw new Error("About content could not be updated");
+  if (updateError) {
+    console.error("[about] update error:", updateError);
+    throw new Error(`Bio could not be updated: ${updateError.message}`);
+  }
+  if (!updated || updated.length === 0) {
+    throw new Error(
+      "Bio update matched 0 rows — your session may lack write permission (check RLS) or row id=0 is missing."
+    );
   }
 
-  revalidatePath("/about");
-  revalidatePath("/", "layout");
+  revalidatePath("/");
 }
 
 /**
@@ -343,30 +148,4 @@ export async function updateResumeData(resume: Resume) {
   }
 
   revalidatePath("/resume");
-}
-
-export async function uploadAboutImage(formData: FormData): Promise<string> {
-  const { data, error } = await getUser();
-  if (error || !data?.user) throw new Error("You must be logged in");
-
-  const file = formData.get("file") as File;
-  if (!(file instanceof File) || file.size === 0) {
-    throw new Error("File is required");
-  }
-
-  const supabase = await createClient();
-
-  const imageName = file.name.replaceAll("/", "");
-  const imagePath = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/photos/${imageName}`;
-
-  const { error: storageError } = await supabase.storage
-    .from("photos")
-    .upload(imageName, file, { upsert: true });
-
-  if (storageError) {
-    console.error(storageError);
-    throw new Error("Image could not be uploaded");
-  }
-
-  return imagePath;
 }

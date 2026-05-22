@@ -1,0 +1,105 @@
+/* Ambient status bar — a quiet, glassy strip pinned bottom-center on every
+   page. Follows the site light/dark theme via the global --paper/--ink vars. */
+
+.statusbar {
+  position: fixed;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  z-index: 400;
+
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100vw - 32px);
+  /* Fixed height so the bar stays the same size whether or not the restore
+     chip is showing — the chip sits inside it rather than stretching it. */
+  height: 34px;
+  padding: 0 14px;
+
+  background: color-mix(in oklch, var(--paper-deep) 78%, transparent);
+  border: 1px solid color-mix(in oklch, var(--ink), transparent 88%);
+  border-radius: 999px;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.20) inset,
+    0 14px 40px -14px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+
+  animation: statusbar-rise 0.5s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+@keyframes statusbar-rise {
+  from { opacity: 0; transform: translate(-50%, 16px); }
+  to   { opacity: 1; transform: translate(-50%, 0); }
+}
+
+.statusbar-seg {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+}
+/* Live-session indicator: a softly pulsing green dot, rendered only while an
+   authenticated session is active. */
+.statusbar-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #2ec27e;
+  animation: statusbar-pulse 2.6s ease-in-out infinite;
+}
+@keyframes statusbar-pulse {
+  0%, 100% { opacity: 1;   box-shadow: 0 0 0 0 color-mix(in oklch, #2ec27e, transparent 35%); }
+  50%      { opacity: 0.6; box-shadow: 0 0 0 4px color-mix(in oklch, #2ec27e, transparent 100%); }
+}
+
+.statusbar-sep {
+  width: 1px;
+  height: 14px;
+  background: color-mix(in oklch, var(--ink), transparent 86%);
+}
+
+/* The one interactive element: restore a minimized terminal. */
+.statusbar-restore {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  padding: 3px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  font: inherit;
+  color: var(--accent);
+  background: color-mix(in oklch, var(--accent) 12%, transparent);
+  transition: background 0.18s ease;
+  animation: statusbar-genie 0.4s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+.statusbar-restore:hover,
+.statusbar-restore:focus-visible {
+  background: color-mix(in oklch, var(--accent) 22%, transparent);
+  outline: none;
+}
+.statusbar-restore svg { width: 12px; height: 12px; }
+@keyframes statusbar-genie {
+  from { opacity: 0; transform: translateY(8px) scale(0.9); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);   }
+}
+
+@media (max-width: 480px) {
+  .statusbar { gap: 8px; height: 32px; padding: 0 12px; font-size: 11px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .statusbar,
+  .statusbar-dot,
+  .statusbar-restore { animation: none !important; }
+}
+
+@media print {
+  .statusbar { display: none !important; }
+}

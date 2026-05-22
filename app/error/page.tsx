@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
-export default function Error() {
+function ErrorContent() {
   const searchParams = useSearchParams();
   const error = searchParams.get("error");
 
@@ -29,5 +30,15 @@ export default function Error() {
         </Link>
       </div>
     </main>
+  );
+}
+
+// `useSearchParams` needs a Suspense boundary for static prerendering — the
+// root loading.tsx used to provide one; now this page wraps its own.
+export default function Error() {
+  return (
+    <Suspense>
+      <ErrorContent />
+    </Suspense>
   );
 }

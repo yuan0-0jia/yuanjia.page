@@ -10,8 +10,6 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@blocknote/react": "^0.47.3",
-    "@blocknote/shadcn": "^0.47.3",
     "@supabase/ssr": "^0.10.0",
     "@supabase/supabase-js": "^2.102.1",
     "@vercel/analytics": "^2.0.1",
