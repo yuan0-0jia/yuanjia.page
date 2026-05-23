@@ -5,6 +5,10 @@ import { createClient as createTokenClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 import { normalizeResume, type Resume } from "@/app/resume/data";
 
+// The site owner's Supabase auth user id. Owner-only actions check against it;
+// it also matches the auth.uid() used in the RLS policies (see SECURITY.sql).
+const OWNER_ID = "6f96b524-d6d7-4912-8d26-f52fd29d6538";
+
 export async function login() {
   const supabase = await createClient();
 
@@ -55,6 +59,7 @@ export async function updateAvatar(formData: FormData) {
     error,
   } = await supabase.auth.getUser();
   if (error || !user) throw new Error("You must be logged in");
+  if (user.id !== OWNER_ID) throw new Error("Not authorized");
 
   const image = formData.get("image");
   if (!(image instanceof File) || image.size === 0) {
@@ -65,33 +70,31 @@ export async function updateAvatar(formData: FormData) {
   const objectName = `avatar-${Date.now()}-${safeName}`;
   const publicUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/photos/${objectName}`;
 
-  // The cookie-based ssr client sends Storage uploads with the anon key as the
-  // bearer, so RLS sees `anon` and the owner-only `photos` policies reject the
-  // write (table writes are unaffected — PostgREST forwards the user token).
-  // Force the user's access token onto the storage client via a global
-  // Authorization header so the upload authenticates as the owner.
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  if (!session?.access_token) throw new Error("You must be logged in");
+  // The @supabase/ssr cookie client can't get the Storage upload to
+  // authenticate as the user — it reaches storage RLS as `anon` even when the
+  // user's token is forwarded — so the owner-only `photos` policies reject it.
+  // Upload with a Supabase secret key (sb_secret_…, the modern replacement for
+  // the service_role key) instead: it bypasses RLS, and the OWNER_ID check
+  // above keeps this owner-only. The storage RLS policies stay as a backstop
+  // against any direct (non-server) API write.
+  // Prefer the new secret key (sb_secret_…); fall back to the legacy
+  // service_role key, since the Supabase↔Vercel integration may provision
+  // either name.
+  const secretKey =
+    process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!secretKey) {
+    throw new Error(
+      "Server is missing SUPABASE_SECRET_KEY / SUPABASE_SERVICE_ROLE_KEY"
+    );
+  }
 
-  console.log("[avatar] auth check", {
-    uid: user.id,
-    tokenLen: session.access_token.length,
-  });
-
-  const authed = createTokenClient(
+  const admin = createTokenClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      global: {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      },
-      auth: { persistSession: false, autoRefreshToken: false },
-    }
+    secretKey,
+    { auth: { persistSession: false, autoRefreshToken: false } }
   );
 
-  const { error: storageError } = await authed.storage
+  const { error: storageError } = await admin.storage
     .from("photos")
     .upload(objectName, image, { upsert: true, contentType: image.type });
 

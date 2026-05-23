@@ -15,10 +15,13 @@
 --   #4 auth_leaked_password_protection
 --
 -- NB: the avatar upload also required a CODE change. The @supabase/ssr cookie
--- client sends Storage uploads with the anon key as the bearer (RLS sees
--- `anon`), so a `to authenticated` policy can never pass. app/_lib/auth-action.ts
--- now forwards the user's access token to the upload so it authenticates as the
--- owner. Table writes were unaffected (PostgREST forwards the token already).
+-- client sends Storage uploads as `anon` (the storage-api doesn't honor the
+-- forwarded user token, though PostgREST does), so no owner-scoped
+-- `to authenticated` policy can pass. app/_lib/auth-action.ts uploads with a
+-- Supabase secret key (sb_secret_…, the modern service_role replacement) via
+-- SUPABASE_SECRET_KEY — bypassing RLS — gated by an explicit OWNER_ID check.
+-- These storage policies remain as a backstop. Table writes were unaffected
+-- (PostgREST forwards the user token already).
 
 
 -- =========================================================================
