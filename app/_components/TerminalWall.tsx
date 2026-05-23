@@ -55,7 +55,6 @@ interface CmdResult {
 
 interface CmdCtx {
   photos: FlickrPhoto[];
-  hasPhotos: boolean;
   cols: number;
   bio: string;
   avatar: string | null;
@@ -1061,7 +1060,6 @@ export default function TerminalWall({ photos, bio, avatar, resume }: TerminalWa
   const makeCtx = useCallback(
     (replay: boolean, colsValue: number = cols): CmdCtx => ({
       photos: displayPhotos,
-      hasPhotos: displayPhotos.length > 0,
       cols: colsValue,
       bio: bioText,
       avatar,
@@ -1337,6 +1335,7 @@ export default function TerminalWall({ photos, bio, avatar, resume }: TerminalWa
       className="yjt-root"
       data-yjt-theme={theme}
       data-static={animate ? undefined : ""}
+      data-minimized={minimized ? "" : undefined}
       suppressHydrationWarning
     >
       <div

@@ -3,7 +3,6 @@ import { getResumeData } from "@/app/_lib/data-service";
 import { RESUME, type Resume } from "./data";
 import ResumeScreen from "./_components/ResumeScreen";
 import ResumePrint from "./_components/ResumePrint";
-import ResumeEditToggle from "./_components/ResumeEditToggle";
 import "./resume.css";
 
 export const metadata: Metadata = {
@@ -43,9 +42,7 @@ export default async function Page() {
           __html: JSON.stringify(buildPersonJsonLd(resume)),
         }}
       />
-      <ResumeEditToggle resume={resume}>
-        <ResumeScreen resume={resume} />
-      </ResumeEditToggle>
+      <ResumeScreen resume={resume} />
       <ResumePrint resume={resume} />
     </>
   );

@@ -2,7 +2,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
-import type { Resume } from "@/app/resume/data";
+import { normalizeResume, type Resume } from "@/app/resume/data";
 
 export async function login() {
   const supabase = await createClient();
@@ -126,9 +126,12 @@ export async function updateResumeData(resume: Resume) {
   // .select() asks for the updated rows back so we can see if RLS silently
   // filtered the write. Without this the call returns success even when 0
   // rows were actually changed.
+  // Normalize before persisting so a hand-edited JSON buffer can't write an
+  // invalid shape (it's only sanitized on read otherwise — round-tripping
+  // would silently drop/mutate data).
   const { data: updated, error: updateError } = await supabase
     .from("site")
-    .update({ resume })
+    .update({ resume: normalizeResume(resume) })
     .eq("id", 1)
     .select();
 

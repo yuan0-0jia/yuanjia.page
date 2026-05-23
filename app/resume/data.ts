@@ -295,8 +295,9 @@ function normalizeCustomSections(raw: unknown): CustomSection[] | undefined {
             })
           : [],
       });
-    } else {
+    } else if (process.env.NODE_ENV !== "production") {
       // Unknown shape — skip with a warning. Don't propagate to the renderer.
+      // Dev-only so it doesn't spam server logs (normalize runs on every read).
       console.warn(
         `[resume] dropping custom section with unknown shape: ${String(r.shape)}`,
       );

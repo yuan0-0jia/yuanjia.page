@@ -1,4 +1,6 @@
-export function renderBio(text: string): (string | React.ReactElement)[] {
+import type { ReactElement } from "react";
+
+export function renderBio(text: string): (string | ReactElement)[] {
   const parts = text.split(/(\[[^\]]+\]\([^)]+\))/g);
   return parts.map((part, i) => {
     const m = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);

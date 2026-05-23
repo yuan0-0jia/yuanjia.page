@@ -1,20 +1,20 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { createClient } from "@/utils/supabase/client";
 
 type AuthContextType = {
   isAuthenticated: boolean;
-  isEditMode: boolean;
-  toggleEditMode: () => void;
-  setEditMode: (v: boolean) => void;
 };
 
 const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
-  isEditMode: false,
-  toggleEditMode: () => {},
-  setEditMode: () => {},
 });
 
 export function useAuth() {
@@ -31,10 +31,9 @@ export default function AuthProvider({
   children: React.ReactNode;
 }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
 
   useEffect(() => {
-    // Skip auth check entirely if no Supabase cookies exist
+    // Skip the auth check entirely if no Supabase cookies exist.
     if (!hasAuthCookie()) return;
 
     const supabase = createClient();
@@ -47,19 +46,12 @@ export default function AuthProvider({
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setIsAuthenticated(!!session?.user);
-      if (!session?.user) setIsEditMode(false);
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  const toggleEditMode = () => setIsEditMode((prev) => !prev);
+  const value = useMemo(() => ({ isAuthenticated }), [isAuthenticated]);
 
-  return (
-    <AuthContext.Provider
-      value={{ isAuthenticated, isEditMode, toggleEditMode, setEditMode: setIsEditMode }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

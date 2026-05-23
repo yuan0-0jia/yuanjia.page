@@ -53,7 +53,7 @@ export async function getFlickrPhotos() {
     return [];
   }
 
-  const url = `${FLICKR_API_BASE}/?method=flickr.photosets.getPhotos&api_key=${apiKey}&photoset_id=${FLICKR_PHOTOSET_ID}&user_id=${FLICKR_USER_ID}&extras=url_b,url_o&format=json&nojsoncallback=1&per_page=500`;
+  const url = `${FLICKR_API_BASE}/?method=flickr.photosets.getPhotos&api_key=${apiKey}&photoset_id=${FLICKR_PHOTOSET_ID}&user_id=${FLICKR_USER_ID}&extras=url_b&format=json&nojsoncallback=1&per_page=500`;
 
   const res = await fetch(url, { next: { revalidate: 3600 } });
 
@@ -74,13 +74,11 @@ export async function getFlickrPhotos() {
       id: string;
       title: string;
       url_b?: string;
-      url_o?: string;
       server: string;
       secret: string;
     }) => ({
       id: photo.id,
       title: photo.title,
-      link: `https://www.flickr.com/photos/${FLICKR_USER_ID}/${photo.id}/in/set-${FLICKR_PHOTOSET_ID}/`,
       src: photo.url_b || `https://live.staticflickr.com/${photo.server}/${photo.id}_${photo.secret}_b.jpg`,
     })
   );

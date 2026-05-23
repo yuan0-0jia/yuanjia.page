@@ -61,7 +61,7 @@ html.matrix .yjt-root {
 }
 
 /* ── Root layout ─────────────────────────────────────────────────── */
-/* Fills the viewport (no navbar); body reserves the dock band via pb-28. */
+/* Fills the viewport (no navbar); body reserves the status-bar band via pb-28. */
 .yjt-root {
   position: relative; /* containing block for minimized-desktop overlays */
   min-height: calc(100dvh - 7rem);
@@ -72,8 +72,15 @@ html.matrix .yjt-root {
   color: var(--t-ink);
   font-family: var(--font-mono, "JetBrains Mono", ui-monospace, monospace);
 }
-/* Fixed, full-viewport dotted backdrop so the terminal AND the dock that
-   floats below it sit on the same paper texture — no seam at the dock band. */
+/* Minimized: collapse the page to one viewport so it no longer scrolls. The
+   window fades/scales to opacity 0 anyway (clipping it is fine), and the idle
+   note (absolute, inset 0) is left centered in the viewport. */
+.yjt-root[data-minimized] {
+  height: calc(100dvh - 7rem);
+  overflow: hidden;
+}
+/* Fixed, full-viewport dotted backdrop so the terminal AND the status bar that
+   floats below it sit on the same paper texture — no seam at the bottom band. */
 .yjt-root::before {
   content: "";
   position: fixed;
@@ -129,7 +136,7 @@ html.matrix .yjt-root {
   pointer-events: none;
 }
 .yjt-window.is-closing {
-  /* Shutdown shrinks toward the traffic lights instead of the dock. */
+  /* Shutdown shrinks toward the traffic lights instead of the status bar. */
   transform-origin: 28px 28px;
   transform: scale(0.5) translateY(40px);
   -webkit-transform: scale(0.5) translateY(40px);
