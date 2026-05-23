@@ -68,17 +68,27 @@ export async function updateAvatar(formData: FormData) {
   // The cookie-based ssr client sends Storage uploads with the anon key as the
   // bearer, so RLS sees `anon` and the owner-only `photos` policies reject the
   // write (table writes are unaffected — PostgREST forwards the user token).
-  // Forward the access token explicitly so the upload authenticates as the
-  // owner and the uid-scoped storage policy applies.
+  // Force the user's access token onto the storage client via a global
+  // Authorization header so the upload authenticates as the owner.
   const {
     data: { session },
   } = await supabase.auth.getSession();
-  if (!session) throw new Error("You must be logged in");
+  if (!session?.access_token) throw new Error("You must be logged in");
+
+  console.log("[avatar] auth check", {
+    uid: user.id,
+    tokenLen: session.access_token.length,
+  });
 
   const authed = createTokenClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { accessToken: async () => session.access_token }
+    {
+      global: {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      },
+      auth: { persistSession: false, autoRefreshToken: false },
+    }
   );
 
   const { error: storageError } = await authed.storage
