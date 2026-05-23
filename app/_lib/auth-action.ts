@@ -1,6 +1,7 @@
 "use server";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
+import { createClient as createTokenClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 import { normalizeResume, type Resume } from "@/app/resume/data";
 
@@ -48,21 +49,39 @@ export async function getUser() {
  * stale CDN copy is served), then points `site.avatar` (singleton row id=1) at it.
  */
 export async function updateAvatar(formData: FormData) {
-  const { data, error } = await getUser();
-  if (error || !data?.user) throw new Error("You must be logged in");
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+  if (error || !user) throw new Error("You must be logged in");
 
   const image = formData.get("image");
   if (!(image instanceof File) || image.size === 0) {
     throw new Error("An image file is required");
   }
 
-  const supabase = await createClient();
-
   const safeName = image.name.replaceAll("/", "").replace(/\s+/g, "_");
   const objectName = `avatar-${Date.now()}-${safeName}`;
   const publicUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/photos/${objectName}`;
 
-  const { error: storageError } = await supabase.storage
+  // The cookie-based ssr client sends Storage uploads with the anon key as the
+  // bearer, so RLS sees `anon` and the owner-only `photos` policies reject the
+  // write (table writes are unaffected — PostgREST forwards the user token).
+  // Forward the access token explicitly so the upload authenticates as the
+  // owner and the uid-scoped storage policy applies.
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (!session) throw new Error("You must be logged in");
+
+  const authed = createTokenClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { accessToken: async () => session.access_token }
+  );
+
+  const { error: storageError } = await authed.storage
     .from("photos")
     .upload(objectName, image, { upsert: true, contentType: image.type });
 
