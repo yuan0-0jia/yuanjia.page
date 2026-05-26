@@ -1134,6 +1134,7 @@ export default function TerminalWall({ photos, bio, avatar, resume }: TerminalWa
       setHistory((prev) => (prev[prev.length - 1] === cmd ? prev : [...prev, cmd]));
       setHistIdx(-1);
       setInputValue("");
+      setAuthNotice(null);
     },
     [makeCtx]
   );
