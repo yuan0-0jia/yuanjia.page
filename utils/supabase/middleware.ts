@@ -6,6 +6,14 @@ export async function updateSession(request: NextRequest) {
     request,
   });
 
+  // Anonymous visitors carry no Supabase auth cookies — there's nothing to
+  // refresh, so skip the round-trip to the auth server entirely. Mirrors
+  // AuthProvider.hasAuthCookie on the client side.
+  const hasAuthCookie = request.cookies
+    .getAll()
+    .some((c) => c.name.startsWith("sb-"));
+  if (!hasAuthCookie) return supabaseResponse;
+
   const supabase = createServerClient<any, "public">(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,

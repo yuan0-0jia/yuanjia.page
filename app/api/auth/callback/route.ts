@@ -5,9 +5,15 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const origin = process.env.NEXT_PUBLIC_SITE_URL;
 
-  // Check for OAuth error and redirect to error page
+  // Check for OAuth error and redirect.
+  //   access_denied  → terminal status line on home (handled by TerminalWall's
+  //                    authNotice effect via ?auth_error=access_denied).
+  //   anything else  → /error page (real server-side failure).
   const error = searchParams.get("error");
   if (error) {
+    if (error === "access_denied") {
+      return NextResponse.redirect(`${origin}/?auth_error=access_denied`);
+    }
     return NextResponse.redirect(
       `${origin}/error?error=${encodeURIComponent(error)}`
     );

@@ -1,36 +1,18 @@
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
-import { Newsreader, Instrument_Sans, Kalam, JetBrains_Mono } from "next/font/google";
+import { Instrument_Sans, JetBrains_Mono } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
-import { Suspense } from "react";
 import Link from "next/link";
-import AuthErrorToast from "./_components/AuthErrorToast";
 import AuthProvider from "./_components/AuthProvider";
 import { StatusBar } from "./_components/StatusBar";
 import { DockProvider } from "./_components/DockProvider";
 import { ThemeProviders } from "./_components/ThemeProvider";
 import "./globals.css";
 
-const newsreader = Newsreader({
-  subsets: ["latin"],
-  axes: ["opsz"],
-  style: ["normal", "italic"],
-  weight: "variable",
-  variable: "--font-serif",
-  display: "swap",
-});
-
 const instrumentSans = Instrument_Sans({
   subsets: ["latin"],
   weight: ["400", "500", "600"],
   variable: "--font-sans",
-  display: "swap",
-});
-
-const kalam = Kalam({
-  subsets: ["latin"],
-  weight: ["400", "700"],
-  variable: "--font-hand",
   display: "swap",
 });
 
@@ -75,7 +57,7 @@ export default function RootLayout({
       lang="en"
       suppressHydrationWarning
       data-scroll-behavior="smooth"
-      className={`${newsreader.variable} ${instrumentSans.variable} ${kalam.variable} ${jetbrainsMono.variable}`}
+      className={`${instrumentSans.variable} ${jetbrainsMono.variable}`}
     >
       <head>
         <link
@@ -95,9 +77,6 @@ export default function RootLayout({
         <ThemeProviders>
           <AuthProvider>
             <DockProvider>
-              <Suspense>
-                <AuthErrorToast />
-              </Suspense>
               {children}
               {modal}
               <StatusBar />

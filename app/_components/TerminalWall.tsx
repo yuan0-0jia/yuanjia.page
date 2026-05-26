@@ -9,6 +9,7 @@ import {
   useMemo,
   type ReactNode,
 } from "react";
+import Image from "next/image";
 import { useTheme } from "next-themes";
 import "./terminal-wall.css";
 import { renderBio } from "../_lib/render-bio";
@@ -29,6 +30,7 @@ interface FlickrPhoto {
   id: string;
   title: string;
   src: string;
+  srcSmall: string;
 }
 
 interface TerminalWallProps {
@@ -329,7 +331,7 @@ function AvatarUpload({ src }: { src: string }) {
       title="Replace avatar"
       aria-label="Replace avatar"
     >
-      <img src={src} alt="Yuan Jia" width={96} height={96} draggable={false} />
+      <Image src={src} alt="Yuan Jia" width={96} height={96} draggable={false} />
       <span className="yjt-avatar-edit-hint">{busy ? "uploading…" : "↑ replace"}</span>
       <input type="file" accept="image/*" onChange={onChange} disabled={busy} hidden />
     </label>
@@ -351,7 +353,7 @@ function BodyWhoami({
           <AvatarUpload src={avatar} />
         ) : (
           <div className="yjt-whoami-avatar">
-            <img src={avatar} alt="Yuan Jia" width={96} height={96} draggable={false} />
+            <Image src={avatar} alt="Yuan Jia" width={96} height={96} draggable={false} />
           </div>
         ))}
       <div className="yjt-whoami-info">
@@ -579,7 +581,7 @@ function PhotoCell({
     >
       <div className="yjt-cell-img">
         <img
-          src={photo.src}
+          src={photo.srcSmall}
           alt={name}
           loading="lazy"
           draggable={false}
@@ -1140,9 +1142,10 @@ export default function TerminalWall({ photos, bio, avatar, resume }: TerminalWa
   // cols, history) so leaving and returning keeps the terminal as you left it.
   const hasRestoredRef = useRef(false);
   const [restored, setRestored] = useState(false);
-  // Sign-in / sign-out indicator: the OAuth callback and logout redirect with
-  // ?auth=in / ?auth=out; we surface it as a one-off terminal status line.
-  const [authNotice, setAuthNotice] = useState<"in" | "out" | null>(null);
+  // Sign-in / sign-out / sign-in-failed indicator: the OAuth callback and
+  // logout redirect with ?auth=in, ?auth=out, or ?auth_error=access_denied;
+  // surface each as a one-off terminal status line.
+  const [authNotice, setAuthNotice] = useState<"in" | "out" | "denied" | null>(null);
   useIsoLayoutEffect(() => {
     try {
       const raw = sessionStorage.getItem(REPL_KEY);
@@ -1189,13 +1192,24 @@ export default function TerminalWall({ photos, bio, avatar, resume }: TerminalWa
     } catch {}
   }, [sessionBlocks, hideInitial, cols, history]);
 
-  // Detect a fresh sign-in/sign-out once on mount, then strip the param.
+  // Detect a fresh sign-in/sign-out/denied once on mount, then strip the param.
   useEffect(() => {
-    const auth = new URLSearchParams(window.location.search).get("auth");
-    if (auth !== "in" && auth !== "out") return;
-    setAuthNotice(auth);
+    const params = new URLSearchParams(window.location.search);
+    const auth = params.get("auth");
+    const authError = params.get("auth_error");
+    let next: "in" | "out" | "denied" | null = null;
+    let stripKey: string | null = null;
+    if (auth === "in" || auth === "out") {
+      next = auth;
+      stripKey = "auth";
+    } else if (authError === "access_denied") {
+      next = "denied";
+      stripKey = "auth_error";
+    }
+    if (!next) return;
+    setAuthNotice(next);
     const url = new URL(window.location.href);
-    url.searchParams.delete("auth");
+    if (stripKey) url.searchParams.delete(stripKey);
     window.history.replaceState({}, "", url.pathname + url.search);
     requestAnimationFrame(() =>
       window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" })
@@ -1428,14 +1442,26 @@ export default function TerminalWall({ photos, bio, avatar, resume }: TerminalWa
             </section>
           ))}
 
-          {/* Sign-in / sign-out status line (one-off, not persisted) */}
+          {/* Sign-in / sign-out / sign-in-failed status line (one-off) */}
           {authNotice && (
             <section className="yjt-block" role="status" aria-live="polite">
               <div className="yjt-body">
-                <span className="yjt-green">✓</span>{" "}
-                {authNotice === "in"
-                  ? "authenticated · welcome back, yuan"
-                  : "signed out · session ended"}
+                {authNotice === "denied" ? (
+                  <>
+                    <span className="yjt-prompt-c">✗</span>{" "}
+                    sign-in denied · this door only opens for one person, friend 😅
+                  </>
+                ) : authNotice === "in" ? (
+                  <>
+                    <span className="yjt-green">✓</span>{" "}
+                    authenticated · welcome back, yuan
+                  </>
+                ) : (
+                  <>
+                    <span className="yjt-green">✓</span>{" "}
+                    signed out · session ended
+                  </>
+                )}
               </div>
             </section>
           )}

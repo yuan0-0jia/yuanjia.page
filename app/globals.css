@@ -17,7 +17,7 @@
 
 @layer base {
   :root {
-    /* Paper palette — light (cream) */
+    /* Paper palette — light */
     --paper:       #f1ecdd;
     --paper-deep:  #e6dfca;
     --ink:         #1f1c17;
@@ -159,29 +159,6 @@
     font-size: 1rem;
     line-height: 1.4;
     font-weight: 600;
-  }
-
-  /* ── Divider ────────────────────────────────────────────────────── */
-  .vintage-divider {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 1rem;
-  }
-  .vintage-divider::before,
-  .vintage-divider::after {
-    content: "";
-    flex: 1;
-    height: 1px;
-    background: linear-gradient(to var(--direction, right), transparent, var(--soft), transparent);
-    opacity: 0.4;
-  }
-
-  /* ── Card/border helper ─────────────────────────────────────────── */
-  .vintage-border {
-    border: 1px solid var(--border);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
   }
 
   /* ── Staggered entry animations (résumé) ────────────────────────── */

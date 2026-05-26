@@ -53,7 +53,12 @@ export async function getFlickrPhotos() {
     return [];
   }
 
-  const url = `${FLICKR_API_BASE}/?method=flickr.photosets.getPhotos&api_key=${apiKey}&photoset_id=${FLICKR_PHOTOSET_ID}&user_id=${FLICKR_USER_ID}&extras=url_b&format=json&nojsoncallback=1&per_page=500`;
+  // Only the 20-photo random sample is rendered, but per_page caps the pool
+  // we shuffle from — 100 gives plenty of headroom over the current album
+  // size while keeping the metadata response small. extras requests both
+  // sizes in one call: url_n (320px) for the grid tiles, url_b (1024px) for
+  // the lightbox.
+  const url = `${FLICKR_API_BASE}/?method=flickr.photosets.getPhotos&api_key=${apiKey}&photoset_id=${FLICKR_PHOTOSET_ID}&user_id=${FLICKR_USER_ID}&extras=url_n,url_b&format=json&nojsoncallback=1&per_page=100`;
 
   const res = await fetch(url, { next: { revalidate: 3600 } });
 
@@ -73,13 +78,22 @@ export async function getFlickrPhotos() {
     (photo: {
       id: string;
       title: string;
+      url_n?: string;
       url_b?: string;
       server: string;
       secret: string;
-    }) => ({
-      id: photo.id,
-      title: photo.title,
-      src: photo.url_b || `https://live.staticflickr.com/${photo.server}/${photo.id}_${photo.secret}_b.jpg`,
-    })
+    }) => {
+      const base = `https://live.staticflickr.com/${photo.server}/${photo.id}_${photo.secret}`;
+      const large = photo.url_b || `${base}_b.jpg`;
+      // url_n is missing for a small subset of photos; fall back to the
+      // constructed _n.jpg before giving up and using the large URL.
+      const small = photo.url_n || `${base}_n.jpg` || large;
+      return {
+        id: photo.id,
+        title: photo.title,
+        src: large,
+        srcSmall: small,
+      };
+    }
   );
 }
