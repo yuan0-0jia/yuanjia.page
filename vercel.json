@@ -10,11 +10,6 @@
       ],
       "destination": "https://yuanjia.page/:path",
       "permanent": true
-    },
-    {
-      "source": "/login",
-      "destination": "/",
-      "permanent": true
     }
   ]
 }
