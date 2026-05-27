@@ -11,7 +11,7 @@ import {
 } from "react-icons/fa6";
 import type { EducationItem, Entry, Resume, SkillCategory } from "../data";
 import { DEFAULT_SECTION_TITLES, isBuiltInKey, resolveSectionOrder } from "../data";
-import { renderInline } from "./renderInline";
+import { formatInline } from "../format-inline";
 import PrintButton from "./PrintButton";
 
 export default function ResumeScreen({ resume }: { resume: Resume }) {
@@ -198,7 +198,7 @@ function EntriesBody({ entries }: { entries: Entry[] }) {
             {p.bullets.map((b, i) => (
               <li key={i} className="resume-body text-ink pl-6 relative">
                 <span className="absolute left-0 top-0 text-accent" aria-hidden>✦</span>
-                {renderInline(b)}
+                {formatInline(b)}
               </li>
             ))}
           </ul>
@@ -214,7 +214,7 @@ function BulletsBody({ bullets }: { bullets: string[] }) {
       {bullets.map((b, i) => (
         <li key={i} className="resume-body text-ink pl-6 relative">
           <span className="absolute left-0 top-0 text-accent" aria-hidden>✦</span>
-          {renderInline(b)}
+          {formatInline(b)}
         </li>
       ))}
     </ul>

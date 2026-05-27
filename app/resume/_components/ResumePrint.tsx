@@ -10,7 +10,7 @@ import {
   isBuiltInKey,
   resolveSectionOrder,
 } from "../data";
-import { renderInline } from "./renderInline";
+import { formatInline } from "../format-inline";
 
 export default function ResumePrint({ resume }: { resume: Resume }) {
   const order = resolveSectionOrder(
@@ -171,7 +171,7 @@ function EntriesBody({ entries }: { entries: Entry[] }) {
           )}
           <ul className="resume-print__bullets">
             {p.bullets.map((b, i) => (
-              <li key={i}>{renderInline(b)}</li>
+              <li key={i}>{formatInline(b)}</li>
             ))}
           </ul>
         </article>
@@ -184,7 +184,7 @@ function BulletsBody({ bullets }: { bullets: string[] }) {
   return (
     <ul className="resume-print__bullets">
       {bullets.map((b, i) => (
-        <li key={i}>{renderInline(b)}</li>
+        <li key={i}>{formatInline(b)}</li>
       ))}
     </ul>
   );
