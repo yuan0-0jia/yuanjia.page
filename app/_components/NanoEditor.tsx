@@ -28,6 +28,9 @@ export default function NanoEditor({
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState(`[ Read ${lineCount(file.initial)} lines ]`);
   const [confirmExit, setConfirmExit] = useState(false);
+  const isMarkdown = file.name.endsWith(".md");
+  const isResume = file.name.includes("resume");
+  const [showHints, setShowHints] = useState(isMarkdown);
   const taRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -86,6 +89,9 @@ export default function NanoEditor({
       } else {
         onClose();
       }
+    } else if (mod && e.key.toLowerCase() === "g" && isMarkdown) {
+      e.preventDefault();
+      setShowHints((s) => !s);
     }
   };
 
@@ -144,6 +150,29 @@ export default function NanoEditor({
         ) : null}
       </div>
 
+      {isMarkdown && showHints ? (
+        <div className="yjt-nano-hints" aria-label="markdown syntax cheatsheet">
+          <div className="yjt-nano-hints-title">markdown · ^G to hide</div>
+          <dl className="yjt-nano-hints-grid">
+            <div><dt><code>## Heading</code></dt><dd>section</dd></div>
+            <div><dt><code>### Heading</code></dt><dd>sub-section</dd></div>
+            <div><dt><code>- item</code></dt><dd>bullet</dd></div>
+            <div><dt><code>**bold**</code></dt><dd>emphasis</dd></div>
+            <div><dt><code>*italic*</code></dt><dd>italic</dd></div>
+            <div><dt><code>`code`</code></dt><dd>inline code</dd></div>
+            <div><dt><code>[label](url)</code></dt><dd>link</dd></div>
+            <div><dt><code>&gt; quote</code></dt><dd>blockquote</dd></div>
+            {isResume ? (
+              <>
+                <div><dt><code>### Name — Title  *(Period)*</code></dt><dd>entry</dd></div>
+                <div><dt><code>`React` `TypeScript`</code></dt><dd>tech stack</dd></div>
+                <div><dt><code>- **Name** · item · item</code></dt><dd>skill / education row</dd></div>
+              </>
+            ) : null}
+          </dl>
+        </div>
+      ) : null}
+
       <div className="yjt-nano-keys">
         <button className="yjt-nano-key" onClick={() => void write()} disabled={busy}>
           <span className="yjt-nano-chord">^O</span> Write Out
@@ -162,6 +191,17 @@ export default function NanoEditor({
         >
           <span className="yjt-nano-chord">^X</span> Exit
         </button>
+        {isMarkdown ? (
+          <button
+            className="yjt-nano-key"
+            onClick={() => {
+              setShowHints((s) => !s);
+              taRef.current?.focus();
+            }}
+          >
+            <span className="yjt-nano-chord">^G</span> {showHints ? "Hide" : "Show"} Help
+          </button>
+        ) : null}
       </div>
     </div>
   );

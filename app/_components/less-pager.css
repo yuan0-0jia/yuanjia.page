@@ -159,7 +159,7 @@
 .less-cmd:not(.is-searching) .less-search { opacity: 0; pointer-events: none; }
 .less-cmd.is-searching .keys-row { opacity: 0; pointer-events: none; }
 
-.less-cmd .keys-row { display: flex; gap: 18px; flex-wrap: nowrap; align-items: center; overflow: hidden; }
+.less-cmd .keys-row { display: flex; gap: 12px; flex-wrap: nowrap; align-items: center; overflow: hidden; }
 
 .less-search { display: flex; flex: 1; min-width: 0; align-items: center; gap: 8px; }
 .less-search .slash { color: var(--accent); font-weight: 500; }
@@ -175,6 +175,17 @@
 .less-search input::placeholder { color: var(--soft); opacity: 0.7; }
 .less-search input::-webkit-search-cancel-button { display: none; }
 .less-search .count { color: var(--soft); font-size: 10.5px; }
+.less-search .match-nav {
+  background: transparent;
+  border: 0;
+  padding: 0 4px;
+  font: inherit;
+  font-size: 10px;
+  color: var(--soft);
+  cursor: pointer;
+  line-height: 1;
+}
+.less-search .match-nav:hover { color: var(--accent); }
 
 /* ─── Content blocks ────────────────────────────────────────────────── */
 
@@ -190,11 +201,6 @@
 .less-sub {
   color: var(--soft);
   margin: 0 0 14px;
-}
-.less-sub .pipe { opacity: 0.4; padding: 0 8px; }
-@media (max-width: 600px) {
-  .less-sub .pipe { display: none; }
-  .less-sub br { display: block; }
 }
 .less-sub .pipe { opacity: 0.4; padding: 0 8px; }
 @media (max-width: 600px) {
@@ -234,20 +240,15 @@
 
 .less-h2 {
   font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: 0.22em;
+  font-size: 13px;
+  letter-spacing: 0.16em;
   color: var(--accent);
   text-transform: uppercase;
-  margin: 24px 0 12px;
-  font-weight: 500;
+  margin: 28px 0 12px;
+  font-weight: 600;
   display: flex;
   align-items: center;
   gap: 12px;
-}
-.less-h2::before {
-  content: "##";
-  color: color-mix(in oklch, var(--accent), transparent 50%);
-  letter-spacing: 0;
 }
 .less-h2 .rule {
   flex: 1;
@@ -255,31 +256,26 @@
   background: color-mix(in oklch, var(--accent), transparent 70%);
 }
 
-.less-entry { margin-bottom: 18px; }
-.less-entry-head {
-  display: flex;
-  justify-content: space-between;
-  gap: 14px;
-  flex-wrap: wrap;
-  align-items: baseline;
+.less-h3 {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--ink);
+  font-weight: 600;
+  margin: 18px 0 6px;
 }
-@media (max-width: 480px) {
-  .less-entry-head { flex-direction: column; gap: 2px; align-items: flex-start; }
-}
-.less-entry-name { font-weight: 600; color: var(--ink); }
-.less-entry-name .sep { color: var(--soft); font-weight: 400; margin: 0 6px; }
-.less-entry-name .role { color: var(--soft); font-style: italic; font-weight: 400; }
-.less-entry-period { color: var(--soft); white-space: nowrap; }
-.less-entry-stack { color: var(--soft); opacity: 0.85; font-size: 12.5px; margin-top: 2px; }
-.less-entry-summary {
-  color: var(--soft);
-  border-left: 2px solid var(--accent);
-  padding-left: 10px;
-  margin: 8px 0;
-  font-style: italic;
+.less-h3 em { color: var(--soft); font-style: italic; font-weight: 400; }
+
+.less-p {
+  margin: 0 0 10px;
+  color: var(--ink);
+  max-width: 76ch;
 }
 
-.less-bullets { list-style: none; padding: 0; margin: 4px 0 0; }
+.less-bullets, .less-ol {
+  padding: 0;
+  margin: 6px 0 12px;
+}
+.less-bullets { list-style: none; }
 .less-bullets li {
   position: relative;
   padding-left: 18px;
@@ -293,43 +289,54 @@
   top: 0;
   color: var(--accent);
 }
-.less-bullets li code {
+
+.less-ol {
+  list-style: none;
+  counter-reset: less-ol;
+}
+.less-ol li {
+  position: relative;
+  padding-left: 26px;
+  margin-bottom: 6px;
+  color: var(--ink);
+  counter-increment: less-ol;
+}
+.less-ol li::before {
+  content: counter(less-ol) ".";
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: var(--accent);
+  font-weight: 500;
+  min-width: 20px;
+}
+
+.less-blockquote {
+  border-left: 2px solid var(--accent);
+  padding: 2px 0 2px 12px;
+  margin: 10px 0 12px;
+  color: var(--soft);
+  white-space: pre-wrap;
+}
+
+/* Inline marks — apply to any block (p, li, h3, blockquote, …). The pill-styled
+   inline code is what makes a standalone `Token1` `Token2` `Token3` line read
+   as a "stack row" without inventing a custom block type. */
+.less-viewport code {
   background: var(--card);
   border: 1px solid var(--border);
-  padding: 0 5px;
+  padding: 0 6px;
   border-radius: 3px;
   font-size: 0.92em;
+  white-space: nowrap;
 }
-.less-bullets li strong { font-weight: 600; color: var(--ink); }
-
-.less-skills { display: grid; gap: 6px; }
-.less-skill-row {
-  display: grid;
-  grid-template-columns: 110px 1fr;
-  gap: 14px;
-  align-items: baseline;
+.less-viewport strong { font-weight: 600; color: var(--ink); }
+.less-viewport em { font-style: italic; }
+.less-viewport a {
+  color: var(--accent);
+  text-decoration: none;
 }
-@media (max-width: 600px) {
-  .less-skill-row { grid-template-columns: 1fr; gap: 2px; }
-  .less-skill-row dt { margin-top: 4px; }
-}
-.less-skill-row dt { color: var(--accent); font-weight: 500; }
-.less-skill-row dd {
-  margin: 0;
-  color: var(--ink);
-  min-width: 0; /* let the 1fr column actually shrink below content size */
-}
-/* Each item span uses inline-block so its trailing bullet stays adhered to
-   the item (no orphan dot at line-start). Words within an item still wrap
-   on natural breaks (spaces); a single token longer than the cell will
-   overflow visibly but is clipped by .less-host's overflow-x: hidden. */
-.less-skill-row dd > span { display: inline-block; max-width: 100%; }
-.less-skill-row dd .bullet { color: var(--soft); opacity: 0.6; margin: 0 5px; }
-
-.less-edu { margin-bottom: 8px; }
-.less-edu .school { font-weight: 600; }
-.less-edu .deg { color: var(--soft); }
-.less-edu .period { color: var(--soft); opacity: 0.7; font-size: 12.5px; }
+.less-viewport a:hover { text-decoration: underline; }
 
 .less-eof {
   color: var(--soft);

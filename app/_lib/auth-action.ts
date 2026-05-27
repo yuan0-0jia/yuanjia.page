@@ -154,10 +154,36 @@ export async function updateBio(bio: string) {
 }
 
 /**
- * Replace the resume JSON in Supabase. Auth-gated.
- * Writes the full resume object to `site.resume` (singleton row id=1).
- * Revalidates the /resume route on success.
+ * Replace the resume markdown in Supabase. Auth-gated.
+ * Parse-validates first, then writes to `site.resume_md`.
  */
+export async function updateResumeMd(md: string) {
+  const { data, error } = await getUser();
+  if (error || !data?.user) throw new Error("You must be logged in");
+
+  const { parseMd } = await import("../resume/parse-md");
+  parseMd(md); // throws if fundamentally broken (e.g. no name)
+
+  const supabase = await createClient();
+  const { data: updated, error: updateError } = await supabase
+    .from("site")
+    .update({ resume_md: md })
+    .eq("id", 1)
+    .select();
+
+  if (updateError) {
+    console.error("[resume_md] update error:", updateError);
+    throw new Error(`Resume could not be updated: ${updateError.message}`);
+  }
+  if (!updated || updated.length === 0) {
+    throw new Error(
+      "Resume save matched 0 rows — your auth session may not have write permission.",
+    );
+  }
+
+  revalidatePath("/resume");
+}
+
 export async function updateResumeData(resume: Resume) {
   const { data, error } = await getUser();
   if (error || !data?.user) throw new Error("You must be logged in");

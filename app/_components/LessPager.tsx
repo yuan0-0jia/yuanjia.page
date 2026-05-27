@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import type { Resume } from "../resume/data";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { Block } from "../resume/parse-blocks";
+import { parseBlocks, formatInline } from "../resume/parse-blocks";
 import "./less-pager.css";
 
 // Respect prefers-reduced-motion for JS-driven smooth scrolls — CSS-only
@@ -20,13 +21,25 @@ const FALLBACK_LINE_HEIGHT_PX = 13.5 * 1.65;
 // `less ~/resume.md` viewer. Takes over the terminal body pane the same way
 // NanoEditor does — no overlay, no nested chrome. The parent yjt-window stays
 // as the surrounding chrome.
+//
+// Rendering model: the markdown source is parsed into a flat block stream
+// (h2 / h3 / p / ul / ol / quote / hr) and rendered as standard HTML with
+// site-specific typography. Frontmatter is the one departure from raw markdown
+// — it gets projected into a header band (h1 + subtitle + contact links row)
+// so visitors don't see raw `---` YAML. When the file has no frontmatter, the
+// header band is skipped and the body renders from line 1.
 export default function LessPager({
-  resume,
+  markdown,
   onClose,
 }: {
-  resume: Resume;
+  markdown: string;
   onClose: () => void;
 }) {
+  // Parse once per markdown string. parseBlocks is pure and cheap; memoizing
+  // also stabilizes object identity for downstream effects.
+  const doc = useMemo(() => parseBlocks(markdown), [markdown]);
+  const fm = doc.frontmatter;
+
   const viewportRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const lineHeightRef = useRef(FALLBACK_LINE_HEIGHT_PX);
@@ -142,8 +155,9 @@ export default function LessPager({
     if (list.length === 0) return;
     list[currentMatchRef.current]?.classList.remove("is-current");
     currentMatchRef.current = (currentMatchRef.current + dir + list.length) % list.length;
-    list[currentMatchRef.current].classList.add("is-current");
-    list[currentMatchRef.current].scrollIntoView({ behavior: scrollBehavior(), block: "center" });
+    const el = list[currentMatchRef.current];
+    el.classList.add("is-current");
+    el.scrollIntoView({ behavior: scrollBehavior(), block: "center" });
     setMatchCount({ idx: currentMatchRef.current + 1, total: list.length });
   }, []);
 
@@ -157,11 +171,10 @@ export default function LessPager({
 
   const closeSearch = useCallback(() => {
     setSearchOpen(false);
-    setSearchQuery("");
-    clearMatches();
-    setMatchCount(null);
+    // Don't clear matches — highlights persist so n/N navigation keeps working.
+    // A new / press calls openSearch which calls clearMatches first.
     viewportRef.current?.focus();
-  }, [clearMatches]);
+  }, []);
 
   // ─── Keyboard nav ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -233,20 +246,62 @@ export default function LessPager({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose, closeSearch, moveToMatch, openSearch]);
 
-  // ─── Derived content ─────────────────────────────────────────────────────
-  const expEntries =
-    resume.projects.length > 0
-      ? [{ title: resume.sectionTitles?.projects ?? "Experience", entries: resume.projects }]
-      : [];
-  for (const cs of resume.customSections ?? []) {
-    if (cs.shape === "entries" && cs.entries.length > 0) {
-      expEntries.push({ title: cs.title, entries: cs.entries });
+  // ─── Block renderer ──────────────────────────────────────────────────────
+  // The pager renders the parsed block stream as standard HTML — markdown
+  // semantics 1:1. Frontmatter is projected into the header band below.
+  // Inline marks are React children (not dangerouslySetInnerHTML) so React
+  // owns the subtree and won't wipe the highlight spans we inject at runtime.
+  const renderBlock = (block: Block, i: number) => {
+    switch (block.kind) {
+      case "h2":
+        return (
+          <h2 key={i} className="less-h2">
+            {formatInline(block.text)}
+            <span className="rule"></span>
+          </h2>
+        );
+      case "h3":
+        return (
+          <h3 key={i} className="less-h3">
+            {formatInline(block.text)}
+          </h3>
+        );
+      case "p":
+        return (
+          <p key={i} className="less-p">
+            {formatInline(block.text)}
+          </p>
+        );
+      case "ul":
+        return (
+          <ul key={i} className="less-bullets">
+            {block.items.map((it, j) => (
+              <li key={j}>{formatInline(it)}</li>
+            ))}
+          </ul>
+        );
+      case "ol":
+        return (
+          <ol key={i} className="less-ol">
+            {block.items.map((it, j) => (
+              <li key={j}>{formatInline(it)}</li>
+            ))}
+          </ol>
+        );
+      case "quote":
+        return (
+          <blockquote key={i} className="less-blockquote">
+            {formatInline(block.text)}
+          </blockquote>
+        );
+      case "hr":
+        return <hr key={i} className="less-hr" />;
     }
-  }
+  };
 
-  const contactLinks = resume.contact
+  const contactLinks = (fm?.contact ?? [])
     .filter((c) => c.value)
-    .map((c, i) => (
+    .map((c, i, arr) => (
       <span key={i}>
         {c.href ? (
           <a
@@ -259,9 +314,10 @@ export default function LessPager({
         ) : (
           <span>{c.value}</span>
         )}
-        {i < resume.contact.length - 1 && <span className="pipe">|</span>}
+        {i < arr.length - 1 && <span className="pipe">|</span>}
       </span>
     ));
+
 
   return (
     <div className="less-host" role="region" aria-label="less ~/resume.md">
@@ -273,101 +329,28 @@ export default function LessPager({
           </span>
         </div>
         <div className="right">
-          {resume.lastUpdated && <span>{resume.lastUpdated.toLowerCase()}</span>}
+          {fm?.lastUpdated && <span>{fm.lastUpdated.toLowerCase()}</span>}
           <span className="pct">{pct}%</span>
         </div>
       </div>
 
       <div className="less-viewport" ref={viewportRef} tabIndex={0} onScroll={updatePosition}>
-        <h1 className="less-h1">{resume.name}</h1>
-        <p className="less-sub">
-          {resume.tagline}
-          {resume.tagline && resume.location && <span className="pipe">|</span>}
-          {resume.location}
-        </p>
-        {contactLinks.length > 0 && <p className="less-contact">{contactLinks}</p>}
-
-        <hr className="less-hr" />
-
-        {expEntries.map(({ title, entries }) => (
-          <section key={title}>
-            <h2 className="less-h2">
-              {title.toLowerCase()}
-              <span className="rule"></span>
-            </h2>
-            {entries.map((entry, i) => (
-              <article key={i} className="less-entry">
-                <div className="less-entry-head">
-                  <div className="less-entry-name">
-                    {entry.name}
-                    {entry.title && (
-                      <>
-                        <span className="sep">—</span>
-                        <span className="role">{entry.title}</span>
-                      </>
-                    )}
-                  </div>
-                  {entry.period && <div className="less-entry-period">{entry.period}</div>}
-                </div>
-                {entry.stack.length > 0 && (
-                  <div className="less-entry-stack">
-                    {entry.stack.map((s) => s.toLowerCase()).join(" · ")}
-                  </div>
-                )}
-                {entry.summary && <div className="less-entry-summary">{entry.summary}</div>}
-                {entry.bullets.length > 0 && (
-                  <ul className="less-bullets">
-                    {entry.bullets.map((b, j) => (
-                      <li key={j} dangerouslySetInnerHTML={{ __html: formatBullet(b) }} />
-                    ))}
-                  </ul>
-                )}
-              </article>
-            ))}
-          </section>
-        ))}
-
-        {resume.skills.length > 0 && (
-          <section>
-            <h2 className="less-h2">
-              {(resume.sectionTitles?.skills ?? "Skills").toLowerCase()}
-              <span className="rule"></span>
-            </h2>
-            <dl className="less-skills">
-              {resume.skills.map((cat) => (
-                <div key={cat.name} className="less-skill-row">
-                  <dt>{cat.name}</dt>
-                  <dd>
-                    {cat.items.map((item, idx) => (
-                      <span key={item}>
-                        {item}
-                        {idx < cat.items.length - 1 && <span className="bullet">·</span>}
-                      </span>
-                    ))}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          </section>
+        {fm && (
+          <>
+            {fm.name && <h1 className="less-h1">{fm.name}</h1>}
+            {(fm.tagline || fm.location) && (
+              <p className="less-sub">
+                {fm.tagline}
+                {fm.tagline && fm.location && <span className="pipe">|</span>}
+                {fm.location}
+              </p>
+            )}
+            {contactLinks.length > 0 && <p className="less-contact">{contactLinks}</p>}
+            <hr className="less-hr" />
+          </>
         )}
 
-        {resume.education.length > 0 && (
-          <section>
-            <h2 className="less-h2">
-              {(resume.sectionTitles?.education ?? "Education").toLowerCase()}
-              <span className="rule"></span>
-            </h2>
-            {resume.education.map((ed, i) => (
-              <div key={i} className="less-edu">
-                <div>
-                  <span className="school">{ed.school}</span>
-                  {ed.period && <span className="period"> · {ed.period}</span>}
-                </div>
-                <div className="deg">{ed.degree}</div>
-              </div>
-            ))}
-          </section>
-        )}
+        {doc.blocks.map(renderBlock)}
 
         <div className="less-eof">END</div>
       </div>
@@ -385,13 +368,10 @@ export default function LessPager({
               <kbd>/</kbd> search
             </span>
             <span className="key">
+              <kbd>n</kbd>/<kbd>N</kbd> next/prev
+            </span>
+            <span className="key">
               <kbd>j</kbd>/<kbd>k</kbd> scroll
-            </span>
-            <span className="key">
-              <kbd>g</kbd>/<kbd>G</kbd> top/bottom
-            </span>
-            <span className="key">
-              <kbd>n</kbd>/<kbd>N</kbd> next/prev match
             </span>
           </div>
           <div className="less-search is-open" aria-hidden={!searchOpen}>
@@ -414,6 +394,24 @@ export default function LessPager({
                 {matchCount.total === 0 ? "no match" : `${matchCount.idx}/${matchCount.total}`}
               </span>
             )}
+            {matchCount && matchCount.total > 0 && (
+              <>
+                <button
+                  type="button"
+                  className="match-nav"
+                  onClick={() => moveToMatch(-1)}
+                  aria-label="Previous match"
+                  tabIndex={searchOpen ? 0 : -1}
+                >▲</button>
+                <button
+                  type="button"
+                  className="match-nav"
+                  onClick={() => moveToMatch(+1)}
+                  aria-label="Next match"
+                  tabIndex={searchOpen ? 0 : -1}
+                >▼</button>
+              </>
+            )}
           </div>
         </div>
         <div className="spacer"></div>
@@ -428,14 +426,4 @@ export default function LessPager({
       </div>
     </div>
   );
-}
-
-// Convert **bold** and `code` markers to HTML for dangerouslySetInnerHTML.
-function formatBullet(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-    .replace(/`(.+?)`/g, "<code>$1</code>");
 }

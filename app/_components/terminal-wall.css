@@ -466,6 +466,55 @@ html.matrix .yjt-root {
   border-radius: 2px;
 }
 
+.yjt-nano-hints {
+  border-top: 1px dashed var(--t-line, rgba(106, 98, 83, 0.35));
+  margin-bottom: 10px;
+  padding: 8px 0 4px;
+  color: var(--t-soft, #6a6253);
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+.yjt-nano-hints-title {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 10.5px;
+  margin-bottom: 6px;
+  opacity: 0.85;
+}
+.yjt-nano-hints-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 4px 16px;
+  margin: 0;
+}
+.yjt-nano-hints-grid > div {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+.yjt-nano-hints-grid dt {
+  flex-shrink: 0;
+  margin: 0;
+}
+.yjt-nano-hints-grid dt code {
+  background: color-mix(in srgb, var(--t-ink) 7%, transparent);
+  color: var(--t-ink);
+  padding: 1px 5px;
+  border-radius: 2px;
+  font-family: inherit;
+}
+.yjt-nano-hints-grid dd {
+  margin: 0;
+  opacity: 0.85;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (max-width: 600px) {
+  .yjt-nano-hints-grid { grid-template-columns: 1fr; }
+}
+
 /* ── cat ~/about.md prose ────────────────────────────────────────── */
 .yjt-prose p {
   /* Inherits the terminal body's mono / 13.5px / 1.65 from .yjt-body-pane, so

@@ -16,7 +16,7 @@ import "./terminal-wall.css";
 import { renderBio } from "../_lib/render-bio";
 import { useDock } from "./DockProvider";
 import { useAuth } from "./AuthProvider";
-import { login, logout, updateBio, updateResumeData } from "../_lib/auth-action";
+import { login, logout, updateBio, updateResumeMd } from "../_lib/auth-action";
 import type { Resume } from "../resume/data";
 import type { NanoFile } from "./NanoEditor";
 
@@ -54,6 +54,7 @@ interface TerminalWallProps {
   bio: string | null;
   avatar: string | null;
   resume: Resume | null;
+  resumeMd: string | null;
   lastLogin: string | null;
   lastLogout: string | null;
 }
@@ -855,20 +856,20 @@ function runCommand(input: string, ctx: CmdCtx): CmdResult {
       }
       const file = (args[0] || "").toLowerCase();
       if (!file) {
-        return { body: <BodyNote tone="prompt-c">usage: nano about.md | resume.json</BodyNote> };
+        return { body: <BodyNote tone="prompt-c">usage: nano about.md | resume.md</BodyNote> };
       }
       if (["about", "about.md", "~/about.md", "bio"].includes(file)) {
         if (!ctx.replay) ctx.openBioEditor();
         return { body: <BodyNote>GNU nano — editing ~/about.md…</BodyNote> };
       }
-      if (["resume", "cv", "resume.json", "~/resume"].includes(file)) {
+      if (["resume", "cv", "resume.md", "~/resume.md", "resume.json", "~/resume"].includes(file)) {
         if (!ctx.replay) ctx.openResumeEditor();
-        return { body: <BodyNote>GNU nano — editing resume.json…</BodyNote> };
+        return { body: <BodyNote>GNU nano — editing ~/resume.md…</BodyNote> };
       }
       return {
         body: (
           <BodyNote tone="prompt-c">
-            nano: cannot edit &apos;{args[0]}&apos; — try about.md or resume
+            nano: cannot edit &apos;{args[0]}&apos; — try about.md or resume.md
           </BodyNote>
         ),
       };
@@ -1136,7 +1137,7 @@ function Prompt({
 
 // ─── Main component ──────────────────────────────────────────────────────────
 
-export default function TerminalWall({ photos, albumTotal, bio, avatar, resume, lastLogin, lastLogout }: TerminalWallProps) {
+export default function TerminalWall({ photos, albumTotal, bio, avatar, resume, resumeMd, lastLogin, lastLogout }: TerminalWallProps) {
   const { resolvedTheme, setTheme: setSiteTheme } = useTheme();
   const { isAuthenticated } = useAuth();
 
@@ -1154,8 +1155,9 @@ export default function TerminalWall({ photos, albumTotal, bio, avatar, resume, 
   // when not editing. Auth-gated via the nano command.
   const [nanoFile, setNanoFile] = useState<NanoFile | null>(null);
   // Resume currently being paged via `less ~/resume.md`. Non-null = pager open.
-  // Same body-pane-takeover pattern as nanoFile; cleared on q/Esc or restart.
-  const [lessResume, setLessResume] = useState<Resume | null>(null);
+  // Holds raw markdown — the pager parses + renders. Same body-pane-takeover
+  // pattern as nanoFile; cleared on q/Esc or restart.
+  const [lessMarkdown, setLessMarkdown] = useState<string | null>(null);
 
   // Theme is unified with the rest of the site (next-themes) — the in-terminal
   // `theme` command is the single control. Mirror the site theme as the
@@ -1270,7 +1272,7 @@ export default function TerminalWall({ photos, albumTotal, bio, avatar, resume, 
     setHistIdx(-1);
     setSkipIntro(false);
     setRunId((r) => r + 1);
-    setLessResume(null);
+    setLessMarkdown(null);
     // Fresh login timestamp for the new session.
     sessionStartMsRef.current = Date.now();
   }, []);
@@ -1330,25 +1332,24 @@ export default function TerminalWall({ photos, albumTotal, bio, avatar, resume, 
         window.scrollTo({ top: 0 });
       },
       openResumeEditor: async () => {
-        // Fallback to the static RESUME only when the Supabase row is missing;
-        // load it on demand so the 472-line fixture stays out of the initial
-        // bundle for anonymous visitors.
-        let seed = resume;
-        if (!seed) {
-          const mod = await import("../resume/data");
-          seed = mod.RESUME;
+        // Seed priority: 1) markdown from DB, 2) convert JSON from DB, 3) convert static RESUME.
+        let initialMd: string;
+        if (resumeMd) {
+          initialMd = resumeMd;
+        } else {
+          const { resumeToMd } = await import("../resume/parse-md");
+          if (resume) {
+            initialMd = resumeToMd(resume);
+          } else {
+            const mod = await import("../resume/data");
+            initialMd = resumeToMd(mod.RESUME);
+          }
         }
         setNanoFile({
-          name: "resume.json",
-          initial: JSON.stringify(seed, null, 2),
+          name: "~/resume.md",
+          initial: initialMd,
           save: async (t) => {
-            let parsed: Resume;
-            try {
-              parsed = JSON.parse(t) as Resume;
-            } catch {
-              throw new Error("invalid JSON — fix the syntax and retry");
-            }
-            await updateResumeData(parsed);
+            await updateResumeMd(t);
           },
         });
         window.scrollTo({ top: 0 });
@@ -1358,15 +1359,20 @@ export default function TerminalWall({ photos, albumTotal, bio, avatar, resume, 
         window.location.href = "mailto:hello.yuanjia@gmail.com";
       },
       openResume: async () => {
-        // Fall back to the static fixture only if Supabase hasn't seeded a
-        // row — dynamic-imported so the 472-line constant doesn't ride along
-        // with the main bundle for the common case.
-        let r = resume;
-        if (!r) {
-          const mod = await import("../resume/data");
-          r = mod.RESUME;
+        // Seed priority: 1) markdown from DB, 2) convert JSON from DB, 3) convert static RESUME.
+        let md: string;
+        if (resumeMd) {
+          md = resumeMd;
+        } else {
+          const { resumeToMd } = await import("../resume/parse-md");
+          if (resume) {
+            md = resumeToMd(resume);
+          } else {
+            const mod = await import("../resume/data");
+            md = resumeToMd(mod.RESUME);
+          }
         }
-        setLessResume(r);
+        setLessMarkdown(md);
         window.scrollTo({ top: 0 });
       },
       setTheme: (t) => setSiteTheme(t),
@@ -1696,8 +1702,8 @@ export default function TerminalWall({ photos, albumTotal, bio, avatar, resume, 
         <main className="yjt-body-pane">
           {nanoFile ? (
             <NanoEditor file={nanoFile} onClose={() => setNanoFile(null)} />
-          ) : lessResume ? (
-            <LessPager resume={lessResume} onClose={() => setLessResume(null)} />
+          ) : lessMarkdown ? (
+            <LessPager markdown={lessMarkdown} onClose={() => setLessMarkdown(null)} />
           ) : (
             <>
           {!hideInitial &&
