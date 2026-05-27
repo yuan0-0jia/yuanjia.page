@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
+import { OWNER_ID } from "@/app/_lib/owner";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -30,6 +31,19 @@ export async function GET(request: Request) {
     );
 
     if (!sessionError) {
+      // Stamp the owner's login time so the `last` terminal command can
+      // surface it to anonymous visitors. Owner-only; failures are swallowed
+      // — this is cosmetic and shouldn't block the redirect.
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user?.id === OWNER_ID) {
+        await supabase
+          .from("site")
+          .update({ last_login: new Date().toISOString() })
+          .eq("id", 1);
+      }
+
       const forwardedHost = request.headers.get("x-forwarded-host");
       const isLocalEnv = process.env.NODE_ENV === "development";
       const redirectBase = isLocalEnv

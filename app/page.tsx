@@ -8,13 +8,16 @@ export const revalidate = 3600;
 // shows an empty grid before swapping in the loaded one. bio/avatar/resume all
 // come from the single `site` row in one query.
 export default async function Home() {
-  const [photos, site] = await Promise.all([getFlickrPhotos(), getSite()]);
+  const [album, site] = await Promise.all([getFlickrPhotos(), getSite()]);
   return (
     <TerminalWall
-      photos={photos}
+      photos={album.photos}
+      albumTotal={album.total}
       bio={site.bio}
       avatar={site.avatar}
       resume={site.resume}
+      lastLogin={site.lastLogin}
+      lastLogout={site.lastLogout}
     />
   );
 }

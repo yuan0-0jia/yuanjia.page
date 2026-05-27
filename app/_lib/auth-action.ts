@@ -4,10 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 import { createClient as createTokenClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 import { normalizeResume, type Resume } from "@/app/resume/data";
-
-// The site owner's Supabase auth user id. Owner-only actions check against it;
-// it also matches the auth.uid() used in the RLS policies (see SECURITY.sql).
-const OWNER_ID = "6f96b524-d6d7-4912-8d26-f52fd29d6538";
+import { OWNER_ID } from "./owner";
 
 export async function login() {
   const supabase = await createClient();
@@ -38,6 +35,18 @@ export async function login() {
 // terminal remounts (refreshing auth state + showing the sign-out indicator).
 export async function logout() {
   const supabase = await createClient();
+  // Stamp the explicit sign-out so the `last` terminal command can show a
+  // completed session. Owner-only; non-owners just sign out without writing.
+  // Done before signOut so the JWT is still valid for the RLS-gated write.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user?.id === OWNER_ID) {
+    await supabase
+      .from("site")
+      .update({ last_logout: new Date().toISOString() })
+      .eq("id", 1);
+  }
   await supabase.auth.signOut();
 }
 

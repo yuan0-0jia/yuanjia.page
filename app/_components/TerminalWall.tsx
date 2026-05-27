@@ -10,19 +10,25 @@ import {
   type ReactNode,
 } from "react";
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import { useTheme } from "next-themes";
 import "./terminal-wall.css";
 import { renderBio } from "../_lib/render-bio";
 import { useDock } from "./DockProvider";
 import { useAuth } from "./AuthProvider";
-import {
-  login,
-  logout,
-  updateAvatar,
-  updateBio,
-  updateResumeData,
-} from "../_lib/auth-action";
-import { RESUME, type Resume } from "../resume/data";
+import { login, logout, updateBio, updateResumeData } from "../_lib/auth-action";
+import type { Resume } from "../resume/data";
+import type { NanoFile } from "./NanoEditor";
+
+// Owner-only UI: lazy-loaded, never shipped to anonymous visitors.
+const NanoEditor = dynamic(() => import("./NanoEditor"), {
+  ssr: false,
+  loading: () => null,
+});
+const AvatarUpload = dynamic(() => import("./AvatarUpload"), {
+  ssr: false,
+  loading: () => null,
+});
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -31,22 +37,19 @@ interface FlickrPhoto {
   title: string;
   src: string;
   srcSmall: string;
+  width: number;
+  height: number;
 }
 
 interface TerminalWallProps {
   photos: FlickrPhoto[];
+  albumTotal: number;
   bio: string | null;
   avatar: string | null;
   resume: Resume | null;
+  lastLogin: string | null;
+  lastLogout: string | null;
 }
-
-// A file open in the inline nano editor — its title-bar name, seed buffer, and
-// the persist action run on ^O (throws to surface an error in the status line).
-type NanoFile = {
-  name: string;
-  initial: string;
-  save: (text: string) => Promise<void>;
-};
 
 type TermTheme = "light" | "dark" | "matrix";
 
@@ -57,6 +60,7 @@ interface CmdResult {
 
 interface CmdCtx {
   photos: FlickrPhoto[];
+  albumTotal: number;
   cols: number;
   bio: string;
   avatar: string | null;
@@ -64,7 +68,9 @@ interface CmdCtx {
   // When true, the command is being re-run to rebuild persisted output on
   // restore: render the body, but skip the one-shot side effects.
   replay?: boolean;
-  openPhoto: (index: number) => void;
+  // Open the lightbox on the given subset + index. The subset is captured
+  // per `flickr` invocation so each grid scrolls through its own selection.
+  openPhoto: (photos: FlickrPhoto[], index: number) => void;
   openLogin: () => void;
   doLogout: () => void;
   openBioEditor: () => void;
@@ -74,6 +80,12 @@ interface CmdCtx {
   setTheme: (t: TermTheme) => void;
   setCols: (c: number) => void;
   clear: () => void;
+  restart: () => void;
+  exit: () => void;
+  history: string[];
+  lastLogin: string | null;
+  lastLogout: string | null;
+  sessionStartMs: number;
 }
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -89,9 +101,9 @@ const FLICKR_ALBUM_URL = `https://www.flickr.com/photos/yuan-jia/albums/${ALBUM_
 // typing hook can read their lengths without re-running on every render.
 const INITIAL_CMDS = [
   "whoami",
-  "cat ~/about.md",
-  "ls -la ~/links",
-  `flickr fetch --album "${ALBUM_NAME}" --limit 20`,
+  "cat about.md",
+  "ls links",
+  "flickr fetch",
 ] as const;
 
 const LINKS = [
@@ -125,15 +137,15 @@ const LINKS = [
 const COMMANDS = [
   { name: "options", desc: "show this list" },
   { name: "whoami", desc: "who is yuan" },
-  { name: "about", desc: "cat ~/about.md" },
-  { name: "ls", desc: "list links" },
-  { name: "ls photos", desc: "list photo grid" },
-  { name: "open N", desc: "open photo N (1–20)" },
+  { name: "ls", desc: "list home directory" },
+  { name: "ls links", desc: "list links" },
+  { name: "cat <file>", desc: "read about.md, resume.md, …" },
+  { name: "flickr fetch", desc: "view photo grid (random 20)" },
   { name: "github", desc: "open github ↗" },
   { name: "linkedin", desc: "open linkedin ↗" },
   { name: "email", desc: "compose email" },
   { name: "theme", desc: "light | dark | matrix" },
-  { name: "cols", desc: "4 | 5 | 6" },
+  { name: "cols", desc: "photo grid: 4 | 5" },
   { name: "clear", desc: "clear screen" },
 ];
 
@@ -141,13 +153,20 @@ const COMMANDS = [
 // still work when typed, they're just not suggested), plus the argument options
 // for the commands that take one.
 const COMPLETIONS = [
-  "options", "whoami", "about", "ls", "open",
+  "options", "whoami", "ls", "flickr",
   "github", "linkedin", "email", "theme", "cols", "clear",
+  "restart", "exit",
+  "pwd", "cd", "cat", "which", "man", "history", "last", "uptime",
 ];
 const ARG_OPTIONS: Record<string, string[]> = {
   theme: ["light", "dark", "matrix"],
-  cols: ["4", "5", "6"],
-  ls: ["photos"],
+  cols: ["4", "5"],
+  ls: ["links"],
+  cd: ["links"],
+  cat: ["about.md", "resume.md"],
+  man: ["yuan"],
+  which: ["yuan"],
+  flickr: ["fetch"],
 };
 
 // Play the boot sequence only once per browsing session. The module flag covers
@@ -173,8 +192,6 @@ function photoName(title: string): string {
 }
 
 const pad3 = (n: number) => String(n).padStart(3, "0");
-
-const lineCount = (s: string) => (s ? s.split("\n").length : 0);
 
 // Fisher-Yates shuffle into a new array (doesn't mutate the input).
 function shuffle<T>(arr: readonly T[]): T[] {
@@ -307,37 +324,6 @@ function CmdLine({
   );
 }
 
-// Auth-gated avatar with an inline "replace" uploader (hover/tap → file
-// picker → server action → reload). Renders in place of the static portrait.
-function AvatarUpload({ src }: { src: string }) {
-  const [busy, setBusy] = useState(false);
-  const onChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setBusy(true);
-    try {
-      const fd = new FormData();
-      fd.append("image", file);
-      await updateAvatar(fd);
-      window.location.reload(); // re-fetch the row so the new portrait shows
-    } catch (err) {
-      console.error(err);
-      setBusy(false);
-    }
-  };
-  return (
-    <label
-      className={`yjt-whoami-avatar yjt-avatar-edit${busy ? " is-busy" : ""}`}
-      title="Replace avatar"
-      aria-label="Replace avatar"
-    >
-      <Image src={src} alt="Yuan Jia" width={96} height={96} draggable={false} />
-      <span className="yjt-avatar-edit-hint">{busy ? "uploading…" : "↑ replace"}</span>
-      <input type="file" accept="image/*" onChange={onChange} disabled={busy} hidden />
-    </label>
-  );
-}
-
 function BodyWhoami({
   avatar,
   isAuthenticated,
@@ -387,155 +373,6 @@ function BodyAbout({ bio }: { bio: string }) {
   );
 }
 
-// ─── Inline nano editor for ~/about.md ───────────────────────────────────────
-// A nano-style takeover of the terminal body: title bar, editable buffer, a
-// status line, and the ^O Write Out / ^X Exit chords (keyboard + clickable).
-// Auth is enforced upstream (the nano command) and again in updateBio.
-function NanoEditor({ file, onClose }: { file: NanoFile; onClose: () => void }) {
-  const [text, setText] = useState(file.initial);
-  const [dirty, setDirty] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [status, setStatus] = useState(`[ Read ${lineCount(file.initial)} lines ]`);
-  const [confirmExit, setConfirmExit] = useState(false);
-  const taRef = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    const ta = taRef.current;
-    if (!ta) return;
-    ta.focus();
-    ta.setSelectionRange(ta.value.length, ta.value.length);
-  }, []);
-
-  const write = async (): Promise<boolean> => {
-    setBusy(true);
-    try {
-      await file.save(text);
-      setDirty(false);
-      setStatus(`[ Wrote ${lineCount(text)} lines ]`);
-      return true;
-    } catch (err) {
-      console.error(err);
-      setStatus(`[ ${err instanceof Error ? err.message : `Error writing ${file.name}`} ]`);
-      return false;
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleKeyDown = async (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    const mod = e.ctrlKey || e.metaKey;
-
-    if (confirmExit) {
-      const k = e.key.toLowerCase();
-      if (k === "y") {
-        e.preventDefault();
-        if (await write()) onClose();
-        else setConfirmExit(false);
-      } else if (k === "n") {
-        e.preventDefault();
-        onClose();
-      } else if (e.key === "Escape" || (mod && k === "c")) {
-        e.preventDefault();
-        setConfirmExit(false);
-        setStatus("[ Cancelled ]");
-      } else {
-        e.preventDefault(); // swallow keys while the prompt is up
-      }
-      return;
-    }
-
-    if (mod && e.key.toLowerCase() === "o") {
-      e.preventDefault();
-      await write();
-    } else if (mod && e.key.toLowerCase() === "x") {
-      e.preventDefault();
-      if (dirty) {
-        setConfirmExit(true);
-        setStatus("");
-      } else {
-        onClose();
-      }
-    }
-  };
-
-  return (
-    <div className="yjt-nano" role="region" aria-label="nano editor">
-      <div className="yjt-nano-bar">
-        <span className="yjt-nano-ver">GNU nano 7.2</span>
-        <span className="yjt-nano-file">{file.name}{dirty ? " *" : ""}</span>
-        <span className="yjt-nano-mod">{dirty ? "Modified" : ""}</span>
-      </div>
-
-      <textarea
-        ref={taRef}
-        className="yjt-nano-text"
-        value={text}
-        spellCheck={false}
-        onChange={(e) => {
-          setText(e.target.value);
-          setDirty(true);
-          if (status) setStatus("");
-        }}
-        onKeyDown={handleKeyDown}
-        aria-label="about.md contents"
-      />
-
-      <div className="yjt-nano-status" aria-live="polite">
-        {confirmExit ? (
-          <span className="yjt-nano-msg">
-            Save modified buffer?{" "}
-            <button
-              className="yjt-nano-inline"
-              onClick={async () => {
-                if (await write()) onClose();
-              }}
-            >
-              Y
-            </button>{" "}
-            <button className="yjt-nano-inline" onClick={onClose}>
-              N
-            </button>{" "}
-            <button
-              className="yjt-nano-inline"
-              onClick={() => {
-                setConfirmExit(false);
-                setStatus("[ Cancelled ]");
-                taRef.current?.focus();
-              }}
-            >
-              ^C
-            </button>
-          </span>
-        ) : busy ? (
-          <span className="yjt-nano-msg">Writing…</span>
-        ) : status ? (
-          <span className="yjt-nano-msg">{status}</span>
-        ) : null}
-      </div>
-
-      <div className="yjt-nano-keys">
-        <button className="yjt-nano-key" onClick={() => void write()} disabled={busy}>
-          <span className="yjt-nano-chord">^O</span> Write Out
-        </button>
-        <button
-          className="yjt-nano-key"
-          onClick={() => {
-            if (dirty) {
-              setConfirmExit(true);
-              setStatus("");
-              taRef.current?.focus();
-            } else {
-              onClose();
-            }
-          }}
-        >
-          <span className="yjt-nano-chord">^X</span> Exit
-        </button>
-      </div>
-    </div>
-  );
-}
-
 function BodyLinks() {
   return (
     <div className="yjt-body">
@@ -573,16 +410,28 @@ function PhotoCell({
   onOpen: (index: number) => void;
 }) {
   const name = photoName(photo.title);
+  // Preload the full-size image when the user signals intent (hover on
+  // desktop, touchstart on mobile). By the time they click, the lightbox
+  // can paint the photo without waiting for a network round-trip.
+  const preload = () => {
+    const img = new window.Image();
+    img.src = photo.src;
+  };
   return (
     <button
       className="yjt-cell"
       onClick={() => onOpen(idx)}
+      onMouseEnter={preload}
+      onTouchStart={preload}
+      onFocus={preload}
       aria-label={`Open ${name}.jpg`}
     >
       <div className="yjt-cell-img">
         <img
           src={photo.srcSmall}
           alt={name}
+          width={photo.width}
+          height={photo.height}
           loading="lazy"
           draggable={false}
           onError={(e) => {
@@ -601,34 +450,38 @@ function PhotoCell({
   );
 }
 
+
 function BodyPhotos({
   photos,
+  albumTotal,
   cols,
   onOpen,
 }: {
   photos: FlickrPhoto[];
+  albumTotal: number;
   cols: number;
   onOpen: (index: number) => void;
 }) {
   return (
     <div className="yjt-body">
       <div className="yjt-photos-meta">
-        <span className="yjt-dim">total {photos.length}</span>{" "}
         {photos.length > 0 ? (
           <>
-            <span className="yjt-green">· flickr live</span>{" "}
-            <span className="yjt-dim">·</span>{" "}
+            <span className="yjt-dim">
+              random {photos.length} of {albumTotal}
+            </span>{" "}
+            <span className="yjt-dim">· from</span>{" "}
             <a
               href={FLICKR_ALBUM_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="yjt-link-inline"
             >
-              view album <span className="yjt-faint">↗</span>
+              &quot;{ALBUM_NAME}&quot; on flickr <span className="yjt-faint">↗</span>
             </a>
           </>
         ) : (
-          <span className="yjt-dim">· loading…</span>
+          <span className="yjt-dim">loading…</span>
         )}
       </div>
       <div
@@ -678,6 +531,140 @@ function BodyNote({
   );
 }
 
+// Multi-line preformatted block (man pages, history listings, etc.).
+function BodyPre({ children }: { children: ReactNode }) {
+  return (
+    <div className="yjt-body" style={{ whiteSpace: "pre-wrap" }}>
+      {children}
+    </div>
+  );
+}
+
+function BodyManYuan() {
+  return (
+    <BodyPre>
+      <span className="yjt-green">NAME</span>
+      {"\n  yuan — software engineer / photographer / human\n\n"}
+      <span className="yjt-green">SYNOPSIS</span>
+      {"\n  yuan [--code] [--shutter] [--coffee]\n\n"}
+      <span className="yjt-green">DESCRIPTION</span>
+      {"\n  Builds platform infrastructure by day, takes pictures the rest of\n  the time. Currently at "}
+      <span className="yjt-blue">Flyer</span>
+      {". Santa Clara, CA.\n\n"}
+      <span className="yjt-green">OPTIONS</span>
+      {"\n  --code      preferred mode\n  --shutter   for the artistic subprocess\n  --coffee    "}
+      <span className="yjt-yellow">required</span>
+      {" for proper operation\n\n"}
+      <span className="yjt-green">BUGS</span>
+      {"\n  Occasional caffeine deficiency. No known workaround.\n\n"}
+      <span className="yjt-green">SEE ALSO</span>
+      {"\n  "}
+      <span className="yjt-blue">github</span>
+      {"(1), "}
+      <span className="yjt-blue">linkedin</span>
+      {"(1), "}
+      <span className="yjt-blue">flickr</span>
+      {"(1)"}
+    </BodyPre>
+  );
+}
+
+function BodyHistory({ history }: { history: string[] }) {
+  if (history.length === 0) {
+    return <BodyNote tone="dim">no commands yet this session</BodyNote>;
+  }
+  const width = String(history.length).length;
+  return (
+    <BodyPre>
+      {history
+        .map((cmd, i) => `${String(i + 1).padStart(width, " ")}  ${cmd}`)
+        .join("\n")}
+    </BodyPre>
+  );
+}
+
+// `ls ~` style listing of the home dir — same column layout as BodyLinks so
+// the two listings visually rhyme. Photos aren't shown here; they live on
+// flickr, not in the home tree (run `flickr` to see them).
+function BodyHome() {
+  const entries = [
+    { name: "links/",      perms: "drwxr-xr-x", info: `${LINKS.length} entries`, permClass: "yjt-blue" },
+    { name: "about.md",    perms: "-rw-r--r--", info: "bio",                     permClass: "" },
+    { name: "resume.md",   perms: "-rw-r--r--", info: "résumé",                  permClass: "" },
+  ];
+  return (
+    <div className="yjt-body">
+      <div className="yjt-ls-head">
+        <span>type</span>
+        <span>name</span>
+        <span>info</span>
+      </div>
+      {entries.map((e) => (
+        <div key={e.name} className="yjt-ls-row">
+          <span className={`yjt-ls-type ${e.permClass}`}>{e.perms}</span>
+          <span className="yjt-ls-name">{e.name}</span>
+          <span className="yjt-ls-target yjt-dim">{e.info}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Fictional home directory ────────────────────────────────────────────────
+// Single registry shared by `ls`, `cd`, and `cat`. Adding an entry here makes
+// it discoverable through all three commands at once. Photos intentionally
+// live outside the tree — they're a remote Flickr resource, surfaced via the
+// `flickr` command instead.
+const FS_ENTRIES = [
+  { key: "links",     kind: "dir"  as const },
+  { key: "about.md",  kind: "file" as const },
+  { key: "resume.md", kind: "file" as const },
+];
+
+type FsDispatch =
+  | { type: "home" }
+  | { type: "parent" }
+  | { type: "system" }
+  | { type: "invalid"; raw: string }
+  | { type: "entry"; key: string; kind: "dir" | "file"; raw: string };
+
+// Resolve a user-typed path into a dispatch verdict. Recognizes `~`, `./`,
+// `/home/yuan/` prefixes; classifies `..` / `/` as parent; tags well-known
+// system roots as permission-denied targets.
+function fsResolve(input: string): FsDispatch {
+  const p = input.trim().replace(/\/+$/, "");
+  if (!p || p === "~" || p === "." || p === "/home/yuan") return { type: "home" };
+  if (p === ".." || p === "/" || p === "/home") return { type: "parent" };
+  if (/^\/(?:etc|var|usr|root|bin|sbin|tmp|dev)(?:\/|$)/.test(p)) return { type: "system" };
+  let key = p;
+  for (const prefix of ["./", "~/", "/home/yuan/"]) {
+    if (key.startsWith(prefix)) {
+      key = key.slice(prefix.length);
+      break;
+    }
+  }
+  const entry = FS_ENTRIES.find((e) => e.key === key);
+  if (entry) return { type: "entry", key: entry.key, kind: entry.kind, raw: input };
+  return { type: "invalid", raw: input };
+}
+
+// Render the contents of a known FS entry. Files render the same body their
+// dedicated command would (cat/about → bio); dirs render their listing.
+function renderEntry(key: string, ctx: CmdCtx): ReactNode {
+  switch (key) {
+    case "links":
+      return <BodyLinks />;
+    case "about.md":
+      return <BodyAbout bio={ctx.bio} />;
+    case "resume.md":
+      return (
+        <BodyNote tone="dim"># resume.md — run `less resume.md` to read</BodyNote>
+      );
+    default:
+      return null;
+  }
+}
+
 // Interpret a command and return body JSX (or a side-effect sentinel).
 function runCommand(input: string, ctx: CmdCtx): CmdResult {
   const trimmed = input.trim();
@@ -695,37 +682,70 @@ function runCommand(input: string, ctx: CmdCtx): CmdResult {
         body: <BodyWhoami avatar={ctx.avatar} isAuthenticated={ctx.isAuthenticated} />,
       };
 
-    case "about":
-    case "cat":
-      return { body: <BodyAbout bio={ctx.bio} /> };
-
-    case "ls": {
-      if (args[0]?.toLowerCase().startsWith("photo")) {
-        return {
-          body: <BodyPhotos photos={ctx.photos} cols={ctx.cols} onOpen={ctx.openPhoto} />,
-        };
+    case "cat": {
+      if (!args[0]) {
+        return { body: <BodyNote tone="prompt-c">cat: missing file operand</BodyNote> };
       }
-      return { body: <BodyLinks /> };
+      const r = fsResolve(args[0]);
+      if (r.type === "home" || r.type === "parent") {
+        return { body: <BodyNote tone="prompt-c">cat: {args[0]}: Is a directory</BodyNote> };
+      }
+      if (r.type === "system") {
+        return { body: <BodyNote tone="prompt-c">cat: {args[0]}: Permission denied</BodyNote> };
+      }
+      if (r.type === "invalid") {
+        return { body: <BodyNote tone="prompt-c">cat: {args[0]}: No such file or directory</BodyNote> };
+      }
+      if (r.kind === "dir") {
+        return { body: <BodyNote tone="prompt-c">cat: {args[0]}: Is a directory</BodyNote> };
+      }
+      return { body: renderEntry(r.key, ctx) };
     }
 
-    case "flickr":
-    case "photos":
-      return {
-        body: <BodyPhotos photos={ctx.photos} cols={ctx.cols} onOpen={ctx.openPhoto} />,
-      };
-
-    case "open":
-    case "o": {
-      const n = parseInt(args[0], 10);
-      if (Number.isFinite(n) && n >= 1 && n <= ctx.photos.length) {
-        if (!ctx.replay) ctx.openPhoto(n - 1);
-        return { body: <BodyNote>opening photo {pad3(n)}.jpg …</BodyNote> };
+    case "ls": {
+      // Drop ls options (-l, -la, -F, etc.); real ls accepts them silently.
+      const first = args.find((a) => !a.startsWith("-")) ?? "";
+      if (!first) {
+        return { body: <BodyHome /> };
       }
+      const r = fsResolve(first);
+      if (r.type === "home") {
+        return { body: <BodyHome /> };
+      }
+      if (r.type === "parent") {
+        // `ls ..` and `ls /` would normally list the parent dir; in this
+        // fictional one-level filesystem there isn't one. Surface honestly.
+        return { body: <BodyNote tone="prompt-c">ls: cannot access &apos;{first}&apos;: No such file or directory</BodyNote> };
+      }
+      if (r.type === "system") {
+        return { body: <BodyNote tone="prompt-c">ls: cannot access &apos;{first}&apos;: Permission denied</BodyNote> };
+      }
+      if (r.type === "invalid") {
+        return { body: <BodyNote tone="prompt-c">ls: cannot access &apos;{first}&apos;: No such file or directory</BodyNote> };
+      }
+      // Real ls of a file just prints the filename; dirs list their entries.
+      if (r.kind === "file") {
+        return { body: <BodyNote>{first}</BodyNote> };
+      }
+      return { body: renderEntry(r.key, ctx) };
+    }
+
+    case "flickr": {
+      if (args[0] !== "fetch") {
+        return { body: <BodyNote tone="prompt-c">usage: flickr fetch</BodyNote> };
+      }
+      // Roll a fresh random 20 on every invocation. The subset is captured
+      // by `onOpen` so the lightbox navigates THIS grid's photos, not some
+      // earlier grid that scrollback still shows.
+      const subset = shuffle(ctx.photos).slice(0, 20);
       return {
         body: (
-          <BodyNote tone="prompt-c">
-            open: photo &quot;{args[0] ?? ""}&quot; not found · range 1–{ctx.photos.length}
-          </BodyNote>
+          <BodyPhotos
+            photos={subset}
+            albumTotal={ctx.albumTotal}
+            cols={ctx.cols}
+            onOpen={(i) => ctx.openPhoto(subset, i)}
+          />
         ),
       };
     }
@@ -808,17 +828,160 @@ function runCommand(input: string, ctx: CmdCtx): CmdResult {
 
     case "cols": {
       const c = parseInt(args[0], 10);
-      if ([4, 5, 6].includes(c)) {
+      if ([4, 5].includes(c)) {
         if (!ctx.replay) ctx.setCols(c);
         return { body: <BodyNote>grid → {c} cols</BodyNote> };
       }
-      return { body: <BodyNote tone="prompt-c">usage: cols 4 | 5 | 6</BodyNote> };
+      return { body: <BodyNote tone="prompt-c">usage: cols 4 | 5</BodyNote> };
     }
 
     case "clear":
     case "cls":
       if (!ctx.replay) ctx.clear();
       return { sideEffectOnly: true };
+
+    case "restart":
+    case "reboot":
+      if (!ctx.replay) ctx.restart();
+      return { sideEffectOnly: true };
+
+    case "exit":
+    case "quit":
+      if (!ctx.replay) ctx.exit();
+      return { sideEffectOnly: true };
+
+    case "pwd":
+      return { body: <BodyNote>/home/yuan</BodyNote> };
+
+    case "cd": {
+      // No-arg / `~` / home is a silent no-op, like a real shell.
+      if (!args[0]) return { body: null };
+      const r = fsResolve(args[0]);
+      if (r.type === "home") return { body: null };
+      if (r.type === "parent") {
+        return { body: <BodyNote>cd: no parent — &apos;~&apos; is the top of this tree.</BodyNote> };
+      }
+      if (r.type === "system") {
+        return { body: <BodyNote tone="prompt-c">cd: {args[0]}: Permission denied</BodyNote> };
+      }
+      if (r.type === "invalid") {
+        return { body: <BodyNote tone="prompt-c">cd: no such file or directory: {args[0]}</BodyNote> };
+      }
+      if (r.kind === "file") {
+        return { body: <BodyNote tone="prompt-c">cd: not a directory: {args[0]}</BodyNote> };
+      }
+      // Dir → render its contents. We don't track a persistent cwd, so the
+      // useful thing cd can do is show you what's inside the directory you
+      // moved into (same body as `ls <dir>`).
+      return { body: renderEntry(r.key, ctx) };
+    }
+
+    case "which": {
+      if (!args[0]) {
+        return { body: <BodyNote tone="prompt-c">which: too few arguments</BodyNote> };
+      }
+      const target = args[0];
+      if (target.toLowerCase() === "yuan") {
+        return { body: <BodyNote>/usr/local/bin/yuan</BodyNote> };
+      }
+      return { body: <BodyNote tone="prompt-c">{target} not found</BodyNote> };
+    }
+
+    case "man": {
+      if (!args[0]) {
+        return { body: <BodyNote tone="prompt-c">What manual page do you want?</BodyNote> };
+      }
+      if (args[0].toLowerCase() === "yuan") return { body: <BodyManYuan /> };
+      return {
+        body: <BodyNote tone="prompt-c">No manual entry for {args[0]}</BodyNote>,
+      };
+    }
+
+    case "history":
+      return { body: <BodyHistory history={ctx.history} /> };
+
+    case "last": {
+      const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+      const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const fmt = (d: Date) =>
+        `${DAYS[d.getDay()]} ${MONTHS[d.getMonth()]} ${String(d.getDate()).padStart(2, " ")} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+      const hhmm = (d: Date) =>
+        `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+      const dur = (a: Date, b: Date) => {
+        const mins = Math.max(0, Math.round((b.getTime() - a.getTime()) / 60_000));
+        return `(${String(Math.floor(mins / 60)).padStart(2, "0")}:${String(mins % 60).padStart(2, "0")})`;
+      };
+      // Keep the username column visually flush regardless of which role is
+      // currently logged in (yuan = 4 chars, guest = 5).
+      const pad = (s: string, w: number) => " ".repeat(Math.max(0, w - s.length));
+      // Anonymous visitor is `guest`; only the owner ever logs in as `yuan`.
+      const current = ctx.isAuthenticated
+        ? { name: "yuan", cls: "yjt-green", from: "yuanjia.page  " }
+        : { name: "guest", cls: "yjt-blue", from: "*.internet    " };
+      // Terminal session start. Initialized to the page-navigation time and
+      // reset on each restart (exit → click-to-restart), so each fresh boot
+      // shows its own login moment. For yuan, OAuth sign-in is a full reload,
+      // so it also resets at sign-in — which is what we want.
+      const sessionStart = new Date(ctx.sessionStartMs);
+      // First commit to the repo — the closest thing this fictional box has
+      // to a boot timestamp.
+      const launch = new Date("2026-05-18T12:53:00-07:00");
+      // Prior session row, three cases:
+      //   - viewer is yuan      → fake guest session (visual symmetry)
+      //   - anonymous + record  → real yuan last_login; no logout is tracked
+      //   - anonymous + no rec. → omit the row entirely
+      let priorRow: ReactNode = null;
+      if (ctx.isAuthenticated) {
+        const priorStart = new Date(sessionStart.getTime() - 47 * 60_000);
+        const priorEnd = new Date(sessionStart.getTime() - 18 * 60_000);
+        priorRow = (
+          <>
+            <span className="yjt-blue">guest</span>
+            {`${pad("guest", 10)}ttys000    *.internet       ${fmt(priorStart)} - ${hhmm(priorEnd)}  ${dur(priorStart, priorEnd)}\n`}
+          </>
+        );
+      } else if (ctx.lastLogin) {
+        const yuanIn = new Date(ctx.lastLogin);
+        const yuanOut = ctx.lastLogout ? new Date(ctx.lastLogout) : null;
+        // Completed = explicit logout happened AFTER the most recent login.
+        // Otherwise the session is still considered open (latest event was a login).
+        const tail =
+          yuanOut && yuanOut.getTime() > yuanIn.getTime()
+            ? `${fmt(yuanIn)} - ${hhmm(yuanOut)}  ${dur(yuanIn, yuanOut)}`
+            : `${fmt(yuanIn)}   still logged in`;
+        priorRow = (
+          <>
+            <span className="yjt-green">yuan</span>
+            {`${pad("yuan", 10)}ttys000    yuanjia.page     ${tail}\n`}
+          </>
+        );
+      }
+      return {
+        body: (
+          <BodyPre>
+            <span className={current.cls}>{current.name}</span>
+            {`${pad(current.name, 10)}ttys001    ${current.from}   ${fmt(sessionStart)}   still logged in\n`}
+            {priorRow}
+            <span className="yjt-dim">reboot</span>
+            {`${pad("reboot", 10)}~                          ${fmt(launch)}\n\n`}
+            <span className="yjt-dim">{`wtmp begins ${fmt(launch)}`}</span>
+          </BodyPre>
+        ),
+      };
+    }
+
+    case "uptime": {
+      const now = new Date();
+      const hh = String(now.getHours()).padStart(2, "0");
+      const mm = String(now.getMinutes()).padStart(2, "0");
+      return {
+        body: (
+          <BodyNote>
+            {`${hh}:${mm}  up since launch, 1 user, load averages: coffee, code, light reading`}
+          </BodyNote>
+        ),
+      };
+    }
 
     default:
       return {
@@ -909,7 +1072,7 @@ function Prompt({
 
 // ─── Main component ──────────────────────────────────────────────────────────
 
-export default function TerminalWall({ photos, bio, avatar, resume }: TerminalWallProps) {
+export default function TerminalWall({ photos, albumTotal, bio, avatar, resume, lastLogin, lastLogout }: TerminalWallProps) {
   const { resolvedTheme, setTheme: setSiteTheme } = useTheme();
   const { isAuthenticated } = useAuth();
 
@@ -959,8 +1122,10 @@ export default function TerminalWall({ photos, bio, avatar, resume }: TerminalWa
     return () => registerDockWindow(null);
   }, [minimized, registerDockWindow]);
 
-  // Lightbox.
-  const [lbFrame, setLbFrame] = useState<number | null>(null);
+  // Lightbox. Captures the specific subset that was clicked so each grid
+  // navigates within its own selection (since `flickr` rolls a fresh 20 on
+  // every call, the canonical pool isn't a single global array anymore).
+  const [lightbox, setLightbox] = useState<{ photos: FlickrPhoto[]; index: number } | null>(null);
 
   // REPL state.
   const [sessionBlocks, setSessionBlocks] = useState<
@@ -972,6 +1137,9 @@ export default function TerminalWall({ photos, bio, avatar, resume }: TerminalWa
   const [histIdx, setHistIdx] = useState(-1);
   const [runId, setRunId] = useState(0);
   const sessionIdRef = useRef(0);
+  // Terminal "login" timestamp. Starts at the page-navigation time; reset on
+  // restart so exiting and restarting behaves like opening a fresh session.
+  const sessionStartMsRef = useRef<number>(performance.timeOrigin);
 
   // Reduced-motion → skip the type-out animation.
   const [reduced, setReduced] = useState(false);
@@ -1030,30 +1198,29 @@ export default function TerminalWall({ photos, bio, avatar, resume }: TerminalWa
     setHistIdx(-1);
     setSkipIntro(false);
     setRunId((r) => r + 1);
+    // Fresh login timestamp for the new session.
+    sessionStartMsRef.current = Date.now();
   }, []);
 
   // ── Lightbox keyboard nav ────────────────────────────────────────
-  const navPhoto = useCallback(
-    (dir: -1 | 1) => {
-      setLbFrame((f) =>
-        f === null
-          ? null
-          : (f + dir + displayPhotos.length) % displayPhotos.length
-      );
-    },
-    [displayPhotos.length]
-  );
+  const navPhoto = useCallback((dir: -1 | 1) => {
+    setLightbox((lb) =>
+      lb === null
+        ? null
+        : { ...lb, index: (lb.index + dir + lb.photos.length) % lb.photos.length }
+    );
+  }, []);
 
   useEffect(() => {
-    if (lbFrame === null) return;
+    if (lightbox === null) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setLbFrame(null);
+      if (e.key === "Escape") setLightbox(null);
       if (e.key === "ArrowLeft") navPhoto(-1);
       if (e.key === "ArrowRight") navPhoto(1);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [lbFrame, navPhoto]);
+  }, [lightbox, navPhoto]);
 
   // ── REPL helpers ─────────────────────────────────────────────────
   // Builds the command context. `replay` rebuilds persisted output on restore —
@@ -1061,13 +1228,16 @@ export default function TerminalWall({ photos, bio, avatar, resume }: TerminalWa
   // pass the saved column count before the cols state has caught up.
   const makeCtx = useCallback(
     (replay: boolean, colsValue: number = cols): CmdCtx => ({
-      photos: displayPhotos,
+      // Full album pool — each `flickr` invocation re-shuffles this and
+      // slices its own 20 (no shared snapshot across calls).
+      photos,
+      albumTotal,
       cols: colsValue,
       bio: bioText,
       avatar,
       isAuthenticated,
       replay,
-      openPhoto: (i: number) => setLbFrame(i),
+      openPhoto: (subset, i) => setLightbox({ photos: subset, index: i }),
       openLogin: () => void login(),
       doLogout: () =>
         void logout().then(() => {
@@ -1084,10 +1254,18 @@ export default function TerminalWall({ photos, bio, avatar, resume }: TerminalWa
         });
         window.scrollTo({ top: 0 });
       },
-      openResumeEditor: () => {
+      openResumeEditor: async () => {
+        // Fallback to the static RESUME only when the Supabase row is missing;
+        // load it on demand so the 472-line fixture stays out of the initial
+        // bundle for anonymous visitors.
+        let seed = resume;
+        if (!seed) {
+          const mod = await import("../resume/data");
+          seed = mod.RESUME;
+        }
         setNanoFile({
           name: "resume.json",
-          initial: JSON.stringify(resume ?? RESUME, null, 2),
+          initial: JSON.stringify(seed, null, 2),
           save: async (t) => {
             let parsed: Resume;
             try {
@@ -1111,8 +1289,14 @@ export default function TerminalWall({ photos, bio, avatar, resume }: TerminalWa
         setHideInitial(true);
         window.scrollTo({ top: 0 });
       },
+      restart: () => restartSession(),
+      exit: () => setClosed(true),
+      history,
+      lastLogin,
+      lastLogout,
+      sessionStartMs: sessionStartMsRef.current,
     }),
-    [displayPhotos, cols, bioText, avatar, resume, isAuthenticated, setSiteTheme]
+    [photos, albumTotal, cols, bioText, avatar, resume, isAuthenticated, setSiteTheme, restartSession, history, lastLogin, lastLogout]
   );
 
   const submitCommand = useCallback(
@@ -1338,7 +1522,12 @@ export default function TerminalWall({ photos, bio, avatar, resume }: TerminalWa
         return <BodyLinks />;
       case 3:
         return (
-          <BodyPhotos photos={displayPhotos} cols={cols} onOpen={(idx) => setLbFrame(idx)} />
+          <BodyPhotos
+            photos={displayPhotos}
+            albumTotal={albumTotal}
+            cols={cols}
+            onOpen={(idx) => setLightbox({ photos: displayPhotos, index: idx })}
+          />
         );
       default:
         return null;
@@ -1490,8 +1679,8 @@ export default function TerminalWall({ photos, bio, avatar, resume }: TerminalWa
       )}
 
       {/* ── Lightbox ───────────────────────────────────────────────── */}
-      {lbFrame !== null && displayPhotos[lbFrame] && (
-        <div className="yjt-lb" onClick={() => setLbFrame(null)}>
+      {lightbox !== null && lightbox.photos[lightbox.index] && (
+        <div className="yjt-lb" onClick={() => setLightbox(null)}>
           <button
             className="yjt-lb-nav yjt-lb-prev"
             onClick={(e) => {
@@ -1505,20 +1694,22 @@ export default function TerminalWall({ photos, bio, avatar, resume }: TerminalWa
 
           <figure className="yjt-lb-card" onClick={(e) => e.stopPropagation()}>
             <div className="yjt-lb-head">
-              <span className="yjt-prompt-c">$</span> open{" "}
+              <span className="yjt-prompt-c">$</span> flickr show{" "}
               <span className="yjt-link-inline">
-                ./photos/{photoName(displayPhotos[lbFrame].title)}.jpg
+                {photoName(lightbox.photos[lightbox.index].title)}.jpg
               </span>
             </div>
             <div className="yjt-lb-photo">
               <img
-                src={displayPhotos[lbFrame].src}
-                alt={photoName(displayPhotos[lbFrame].title)}
+                src={lightbox.photos[lightbox.index].src}
+                alt={photoName(lightbox.photos[lightbox.index].title)}
+                width={lightbox.photos[lightbox.index].width}
+                height={lightbox.photos[lightbox.index].height}
               />
             </div>
             <figcaption className="yjt-lb-caption">
               <span className="yjt-lb-counter">
-                {pad3(lbFrame + 1)}/{pad3(displayPhotos.length)}
+                {pad3(lightbox.index + 1)}/{pad3(lightbox.photos.length)}
               </span>
             </figcaption>
           </figure>
@@ -1536,7 +1727,7 @@ export default function TerminalWall({ photos, bio, avatar, resume }: TerminalWa
 
           <button
             className="yjt-lb-close"
-            onClick={() => setLbFrame(null)}
+            onClick={() => setLightbox(null)}
             aria-label="Close lightbox"
           >
             esc
