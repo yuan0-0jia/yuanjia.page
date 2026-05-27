@@ -61,25 +61,34 @@ html.matrix .yjt-root {
 }
 
 /* ── Root layout ─────────────────────────────────────────────────── */
-/* Fills the viewport (no navbar); body reserves the status-bar band via pb-20
-   (clears the fixed StatusBar at bottom:16 + height:34 ≈ 50px, with breathing
-   room above it so the terminal window isn't visually crowded at scroll-end). */
+/* Fills the viewport (no navbar); body reserves the status-bar band via pb-16
+   on mobile / pb-20 on desktop (clears the fixed StatusBar at bottom:16 +
+   height:32-34). */
 .yjt-root {
   position: relative; /* containing block for minimized-desktop overlays */
-  min-height: calc(100dvh - 5rem);
-  padding: 28px 24px 32px;
+  min-height: calc(100dvh - 4rem);
+  padding: 16px 14px 24px;
   display: flex;
   align-items: flex-start;
   justify-content: center;
   color: var(--t-ink);
   font-family: var(--font-mono, "JetBrains Mono", ui-monospace, monospace);
 }
+@media (min-width: 600px) {
+  .yjt-root {
+    min-height: calc(100dvh - 5rem);
+    padding: 28px 24px 32px;
+  }
+}
 /* Minimized: collapse the page to one viewport so it no longer scrolls. The
    window fades/scales to opacity 0 anyway (clipping it is fine), and the idle
    note (absolute, inset 0) is left centered in the viewport. */
 .yjt-root[data-minimized] {
-  height: calc(100dvh - 5rem);
+  height: calc(100dvh - 4rem);
   overflow: hidden;
+}
+@media (min-width: 600px) {
+  .yjt-root[data-minimized] { height: calc(100dvh - 5rem); }
 }
 /* Fixed, full-viewport dotted backdrop so the terminal AND the status bar that
    floats below it sit on the same paper texture — no seam at the bottom band. */
@@ -172,6 +181,14 @@ html.matrix .yjt-root {
   transition: transform 0.12s, filter 0.12s;
   position: relative;
 }
+/* Invisible padding ring expands the touch target without visually
+   inflating the dot — taps within a ~32px radius register. */
+.yjt-light::after {
+  content: "";
+  position: absolute;
+  inset: -10px;
+  border-radius: 50%;
+}
 .yjt-light:hover  { transform: scale(1.1); }
 .yjt-light:active { transform: scale(0.95); }
 .yjt-light-glyph {
@@ -224,16 +241,21 @@ html.matrix .yjt-root {
 @media (max-width: 600px) {
   .yjt-title { display: none; }
   .yjt-chrome { grid-template-columns: auto 1fr; }
+  /* Bigger tap target for the public "skip the intro" affordance. */
+  .yjt-chrome-skip { padding: 7px 12px; font-size: 12px; min-height: 32px; }
 }
 
 /* ── Terminal body pane ──────────────────────────────────────────── */
 .yjt-body-pane {
-  padding: 24px 28px 36px;
+  padding: 18px 18px 28px;
   font-family: var(--font-mono, "JetBrains Mono", ui-monospace, monospace);
   font-size: 13.5px;
   line-height: 1.65;
   color: var(--t-ink);
   background: var(--paper);
+}
+@media (min-width: 600px) {
+  .yjt-body-pane { padding: 24px 28px 36px; }
 }
 
 /* ── Block (one command + output) ────────────────────────────────── */
@@ -260,7 +282,7 @@ html.matrix .yjt-root {
 .yjt-sep    { color: var(--t-dim); }
 .yjt-cwd    { color: var(--t-blue); }
 .yjt-dollar { color: var(--t-dim); margin: 0 6px; }
-.yjt-cmd-text { color: var(--t-ink); white-space: pre; }
+.yjt-cmd-text { color: var(--t-ink); white-space: pre-wrap; }
 
 /* Blinking block cursor (typing + idle) */
 .yjt-cursor {
@@ -302,7 +324,8 @@ html.matrix .yjt-root {
 }
 .yjt-kv-v { color: var(--t-ink); }
 
-/* neofetch-style header: portrait left, key-values right. */
+/* neofetch-style header: portrait left, key-values right. Stacks vertically on
+   very narrow screens to keep both pieces legible. */
 .yjt-whoami {
   display: flex;
   align-items: center;
@@ -347,9 +370,17 @@ html.matrix .yjt-root {
 .yjt-avatar-edit.is-busy .yjt-avatar-edit-hint {
   opacity: 1;
 }
-@media (max-width: 560px) {
+@media (max-width: 600px) {
   .yjt-whoami { gap: 14px; }
   .yjt-whoami-avatar { width: 76px; height: 76px; }
+}
+@media (max-width: 480px) {
+  /* Keep the side-by-side neofetch layout — shrinking the avatar gives the
+     key-value rows the horizontal space they need without going full-stack. */
+  .yjt-whoami { gap: 12px; align-items: flex-start; }
+  .yjt-whoami-avatar { width: 56px; height: 56px; }
+  .yjt-kv { font-size: 12.5px; gap: 6px; line-height: 1.55; }
+  .yjt-kv-k { min-width: 52px; }
 }
 
 /* ── nano editor (~/about.md) ────────────────────────────────────── */
@@ -486,8 +517,7 @@ html.matrix .yjt-root {
   text-align: left;
   cursor: pointer;
   border-radius: 3px;
-  padding-left: 4px;
-  padding-right: 4px;
+  padding: 4px;
   margin-left: -4px;
   transition: background 0.15s, transform 0.15s;
 }
@@ -562,6 +592,10 @@ html.matrix .yjt-root {
   min-width: 0;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+@media (max-width: 600px) {
+  .yjt-cell-row { font-size: 10px; gap: 4px; }
+  .yjt-cell-perms { display: none; }
+}
 
 /* ── Interactive prompt (REPL) ───────────────────────────────────── */
 .yjt-prompt-block { margin-top: 6px; margin-bottom: 0; }
@@ -600,6 +634,17 @@ html.matrix .yjt-root {
 }
 .yjt-help-cmd  { color: var(--t-blue); }
 .yjt-help-desc { color: var(--t-dim); }
+@media (max-width: 480px) {
+  /* On narrow screens the description tail (e.g. "light | dark | matrix")
+     gets squeezed into 2-3 lines beside the command. Stack each row so the
+     description gets the full width — keeps the table compact and readable. */
+  .yjt-help-row {
+    grid-template-columns: 1fr;
+    column-gap: 0;
+    margin-bottom: 6px;
+  }
+  .yjt-help-desc { padding-left: 14px; font-size: 12.5px; }
+}
 
 /* ── Lightbox ────────────────────────────────────────────────────── */
 .yjt-lb {
@@ -638,6 +683,7 @@ html.matrix .yjt-root {
      before the src loads, so there's no shift on open. */
   overflow: hidden;
   line-height: 0;
+  position: relative;
 }
 .yjt-lb-photo img {
   display: block;
@@ -684,16 +730,70 @@ html.matrix .yjt-root {
 }
 .yjt-lb-close:hover { background: rgba(255, 255, 255, 0.14); }
 
+/* Mobile: lay the card flat to the viewport, and dock the nav arrows in a
+   thumb-friendly player-style row at the bottom, flanking the counter. */
+@media (max-width: 600px) {
+  .yjt-lb {
+    grid-template-columns: 1fr;
+    align-items: center;
+    padding: 12px 8px 84px;
+  }
+  .yjt-lb-card {
+    grid-column: 1;
+    width: 100%;
+    max-width: 100%;
+    padding: 10px 10px 14px;
+  }
+  .yjt-lb-head { font-size: 11px; margin-bottom: 8px; }
+  .yjt-lb-photo img {
+    max-width: 100%;
+    max-height: calc(100dvh - 200px);
+  }
+  .yjt-lb-caption {
+    justify-content: center;
+    padding: 10px 4px 0;
+  }
+  .yjt-lb-nav {
+    position: fixed;
+    bottom: 24px;
+    top: auto;
+    transform: none;
+    width: 44px; height: 44px;
+    font-size: 22px;
+    background: rgba(0, 0, 0, 0.55);
+    border-color: rgba(255, 255, 255, 0.22);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 2;
+    grid-column: auto;
+    justify-self: auto;
+  }
+  .yjt-lb-nav:hover { transform: none; background: rgba(255, 255, 255, 0.18); }
+  /* Flank center: counter is visually at center, arrows at ±56px */
+  .yjt-lb-prev { left: 50%; margin-left: -78px; }
+  .yjt-lb-next { left: 50%; margin-left: 34px; }
+  .yjt-lb-close {
+    top: 12px; right: 12px;
+    padding: 8px 14px;
+    font-size: 12px;
+    min-height: 36px;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+}
+
 /* ── Shutdown overlay (red × → "connection closed") ──────────────── */
 .yjt-shutdown {
   position: fixed; inset: 0; z-index: 1500;
   display: flex; align-items: center; justify-content: center;
-  gap: 14px;
+  padding: 24px;
   background: #07070a;
   color: #6a6253;
   font-family: var(--font-mono, "JetBrains Mono", ui-monospace, monospace);
   font-size: 14px;
   letter-spacing: 0.08em;
+  text-align: center;
   animation: yjt-shutdown-in 0.4s ease-out both;
 }
 @keyframes yjt-shutdown-in { from { opacity: 0; } to { opacity: 1; } }
@@ -704,10 +804,13 @@ html.matrix .yjt-root {
   pointer-events: none;
 }
 .yjt-shutdown-dot {
+  display: inline-block;
+  vertical-align: middle;
   width: 8px; height: 8px;
   border-radius: 50%;
   background: #ff5f57;
   box-shadow: 0 0 12px #ff5f57;
+  margin-right: 12px;
   animation: yjt-shutdown-blink 1.6s ease-in-out infinite;
 }
 @keyframes yjt-shutdown-blink {
@@ -733,17 +836,25 @@ html.matrix .yjt-root {
 }
 
 /* ── Responsive ──────────────────────────────────────────────────── */
-@media (max-width: 720px) {
-  .yjt-grid { grid-template-columns: repeat(3, 1fr) !important; }
-  .yjt-root { padding: 16px 12px 40px; }
+/* The photo grid uses --yjt-cols (set inline by the cols command). These
+   media queries provide a sensible cap per breakpoint by overriding the
+   CSS var, but never force it above what the user picked. */
+@media (max-width: 768px) {
+  .yjt-grid { --yjt-cols: 3; }
   .yjt-ls-head,
   .yjt-ls-row { grid-template-columns: 110px 1fr; }
   .yjt-ls-head span:nth-child(3),
   .yjt-ls-row .yjt-ls-target { grid-column: 1 / -1; padding-left: 0; }
 }
-@media (max-width: 480px) {
-  .yjt-grid { grid-template-columns: repeat(2, 1fr) !important; }
-  .yjt-body-pane { padding: 16px 16px 24px; }
+@media (max-width: 600px) {
+  .yjt-grid { --yjt-cols: 2; gap: 8px; }
+  .yjt-ls-head,
+  .yjt-ls-row { grid-template-columns: 1fr; gap: 2px; }
+  .yjt-ls-head span:nth-child(1) { display: none; }
+  .yjt-ls-row .yjt-ls-type { display: none; }
+}
+@media (max-width: 380px) {
+  .yjt-grid { gap: 10px; }
 }
 
 /* ── Idle desktop note (shown while the terminal is minimized) ──────── */

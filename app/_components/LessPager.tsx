@@ -4,6 +4,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Resume } from "../resume/data";
 import "./less-pager.css";
 
+// Respect prefers-reduced-motion for JS-driven smooth scrolls — CSS-only
+// transitions are already covered by the .yjt-root reduced-motion rule.
+const prefersReducedMotion = () =>
+  typeof window !== "undefined" &&
+  window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+const scrollBehavior = (): ScrollBehavior =>
+  prefersReducedMotion() ? "auto" : "smooth";
+
 // Approximate "line height" used to translate scrollTop → "lines 1–N of M".
 // Initialized from CSS at mount so it stays accurate if the font-size or
 // line-height in .less-pager.css changes.
@@ -120,7 +128,7 @@ export default function LessPager({
       if (collected.length > 0) {
         currentMatchRef.current = 0;
         collected[0].classList.add("is-current");
-        collected[0].scrollIntoView({ behavior: "smooth", block: "center" });
+        collected[0].scrollIntoView({ behavior: scrollBehavior(), block: "center" });
         setMatchCount({ idx: 1, total: collected.length });
       } else {
         setMatchCount({ idx: 0, total: 0 });
@@ -135,7 +143,7 @@ export default function LessPager({
     list[currentMatchRef.current]?.classList.remove("is-current");
     currentMatchRef.current = (currentMatchRef.current + dir + list.length) % list.length;
     list[currentMatchRef.current].classList.add("is-current");
-    list[currentMatchRef.current].scrollIntoView({ behavior: "smooth", block: "center" });
+    list[currentMatchRef.current].scrollIntoView({ behavior: scrollBehavior(), block: "center" });
     setMatchCount({ idx: currentMatchRef.current + 1, total: list.length });
   }, []);
 
@@ -176,30 +184,30 @@ export default function LessPager({
       switch (e.key) {
         case "j":
         case "ArrowDown":
-          vp.scrollBy({ top: lineHeightRef.current * 2, behavior: "smooth" });
+          vp.scrollBy({ top: lineHeightRef.current * 2, behavior: scrollBehavior() });
           e.preventDefault();
           break;
         case "k":
         case "ArrowUp":
-          vp.scrollBy({ top: -lineHeightRef.current * 2, behavior: "smooth" });
+          vp.scrollBy({ top: -lineHeightRef.current * 2, behavior: scrollBehavior() });
           e.preventDefault();
           break;
         case " ":
         case "PageDown":
-          vp.scrollBy({ top: vp.clientHeight * 0.9, behavior: "smooth" });
+          vp.scrollBy({ top: vp.clientHeight * 0.9, behavior: scrollBehavior() });
           e.preventDefault();
           break;
         case "b":
         case "PageUp":
-          vp.scrollBy({ top: -vp.clientHeight * 0.9, behavior: "smooth" });
+          vp.scrollBy({ top: -vp.clientHeight * 0.9, behavior: scrollBehavior() });
           e.preventDefault();
           break;
         case "g":
-          vp.scrollTo({ top: 0, behavior: "smooth" });
+          vp.scrollTo({ top: 0, behavior: scrollBehavior() });
           e.preventDefault();
           break;
         case "G":
-          vp.scrollTo({ top: vp.scrollHeight, behavior: "smooth" });
+          vp.scrollTo({ top: vp.scrollHeight, behavior: scrollBehavior() });
           e.preventDefault();
           break;
         case "/":
@@ -365,8 +373,11 @@ export default function LessPager({
       </div>
 
       <div className={`less-cmd${searchOpen ? " is-searching" : ""}`}>
-        {!searchOpen ? (
-          <div className="keys-row">
+        {/* Stack both rows in the same grid cell so the bar reserves the
+            menu's natural height — switching to search swaps visibility
+            instead of resizing the bar. */}
+        <div className="less-cmd-stack">
+          <div className="keys-row" aria-hidden={searchOpen}>
             <span className="key">
               <kbd>:q</kbd> close
             </span>
@@ -383,8 +394,7 @@ export default function LessPager({
               <kbd>n</kbd>/<kbd>N</kbd> next/prev match
             </span>
           </div>
-        ) : (
-          <div className="less-search is-open">
+          <div className="less-search is-open" aria-hidden={!searchOpen}>
             <span className="slash">/</span>
             <input
               ref={searchInputRef}
@@ -397,6 +407,7 @@ export default function LessPager({
               placeholder="search…"
               autoComplete="off"
               spellCheck={false}
+              tabIndex={searchOpen ? 0 : -1}
             />
             {matchCount && (
               <span className="count">
@@ -404,9 +415,16 @@ export default function LessPager({
               </span>
             )}
           </div>
-        )}
+        </div>
         <div className="spacer"></div>
-        <span className="esc">esc</span>
+        <button
+          type="button"
+          className="esc"
+          onClick={onClose}
+          aria-label="Close pager"
+        >
+          esc
+        </button>
       </div>
     </div>
   );

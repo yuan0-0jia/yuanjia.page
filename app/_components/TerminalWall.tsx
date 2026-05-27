@@ -43,6 +43,7 @@ interface FlickrPhoto {
   title: string;
   src: string;
   srcSmall: string;
+  srcMedium: string;
   width: number;
   height: number;
 }
@@ -68,6 +69,7 @@ interface CmdCtx {
   photos: FlickrPhoto[];
   albumTotal: number;
   cols: number;
+  isMobile: boolean;
   bio: string;
   avatar: string | null;
   isAuthenticated: boolean;
@@ -149,12 +151,12 @@ const COMMANDS = [
   { name: "ls links", desc: "list links" },
   { name: "cat <file>", desc: "read about.md, resume.md, …" },
   { name: "less <file>", desc: "page resume.md" },
-  { name: "flickr fetch", desc: "view photo grid (random 20)" },
+  { name: "flickr fetch", desc: "view photo grid" },
   { name: "github", desc: "open github ↗" },
   { name: "linkedin", desc: "open linkedin ↗" },
   { name: "email", desc: "compose email" },
   { name: "theme", desc: "light | dark | matrix" },
-  { name: "cols", desc: "photo grid: 4 | 5" },
+  { name: "cols", desc: "photo grid", mobileDesc: "1 | 2", desktopDesc: "4 | 5" },
   { name: "clear", desc: "clear screen" },
 ];
 
@@ -169,7 +171,7 @@ const COMPLETIONS = [
 ];
 const ARG_OPTIONS: Record<string, string[]> = {
   theme: ["light", "dark", "matrix"],
-  cols: ["4", "5"],
+  cols: ["1", "2", "4", "5"],
   ls: ["links"],
   cd: ["links"],
   cat: ["about.md", "resume.md"],
@@ -178,6 +180,11 @@ const ARG_OPTIONS: Record<string, string[]> = {
   which: ["yuan"],
   flickr: ["fetch"],
 };
+// Returns the valid cols values for the current viewport.
+const colsOptions = () =>
+  typeof window !== "undefined" && window.innerWidth <= 600
+    ? ["1", "2"]
+    : ["4", "5"];
 
 // Play the boot sequence only once per browsing session. The module flag covers
 // SPA navigations (it survives client-side route changes); sessionStorage covers
@@ -439,6 +446,12 @@ function PhotoCell({
       <div className="yjt-cell-img">
         <img
           src={photo.srcSmall}
+          srcSet={`${photo.srcSmall} 320w, ${photo.srcMedium} 800w`}
+          // Conservative sizes that cover the active layouts:
+          //   ≤600px → mostly 2 cols (50vw) but as wide as 100vw with cols=1
+          //   601-768px → ~3 cols (33vw)
+          //   ≥769px → bounded by max-w-4xl ÷ cols (max ~250px per cell)
+          sizes="(max-width: 600px) 50vw, (max-width: 768px) 33vw, 250px"
           alt={name}
           width={photo.width}
           height={photo.height}
@@ -506,19 +519,27 @@ function BodyPhotos({
   );
 }
 
-function BodyOptions() {
+function BodyOptions({ isMobile }: { isMobile: boolean }) {
   return (
     <div className="yjt-body">
       <div className="yjt-dim" style={{ marginBottom: 6 }}>
         available commands
       </div>
       <div className="yjt-help">
-        {COMMANDS.map((c) => (
-          <div className="yjt-help-row" key={c.name}>
-            <span className="yjt-help-cmd">{c.name}</span>
-            <span className="yjt-help-desc">— {c.desc}</span>
-          </div>
-        ))}
+        {COMMANDS.map((c) => {
+          // Pick the viewport-appropriate variant for commands that have one
+          // (e.g. cols has different options on mobile vs desktop).
+          const desc =
+            "mobileDesc" in c && "desktopDesc" in c
+              ? `${c.desc}: ${isMobile ? c.mobileDesc : c.desktopDesc}`
+              : c.desc;
+          return (
+            <div className="yjt-help-row" key={c.name}>
+              <span className="yjt-help-cmd">{c.name}</span>
+              <span className="yjt-help-desc">— {desc}</span>
+            </div>
+          );
+        })}
       </div>
       <div className="yjt-dim" style={{ marginTop: 10, fontSize: 11 }}>
         ↑/↓ history · Tab completes
@@ -685,7 +706,7 @@ function runCommand(input: string, ctx: CmdCtx): CmdResult {
 
   switch (cmd) {
     case "options":
-      return { body: <BodyOptions /> };
+      return { body: <BodyOptions isMobile={ctx.isMobile} /> };
 
     case "whoami":
       return {
@@ -770,10 +791,10 @@ function runCommand(input: string, ctx: CmdCtx): CmdResult {
       if (args[0] !== "fetch") {
         return { body: <BodyNote tone="prompt-c">usage: flickr fetch</BodyNote> };
       }
-      // Roll a fresh random 20 on every invocation. The subset is captured
+      // Roll a fresh random subset on every invocation. The subset is captured
       // by `onOpen` so the lightbox navigates THIS grid's photos, not some
       // earlier grid that scrollback still shows.
-      const subset = shuffle(ctx.photos).slice(0, 20);
+      const subset = shuffle(ctx.photos).slice(0, ctx.isMobile ? 10 : 20);
       return {
         body: (
           <BodyPhotos
@@ -864,11 +885,18 @@ function runCommand(input: string, ctx: CmdCtx): CmdResult {
 
     case "cols": {
       const c = parseInt(args[0], 10);
-      if ([4, 5].includes(c)) {
+      const valid = ctx.isMobile ? [1, 2] : [4, 5];
+      if (valid.includes(c)) {
         if (!ctx.replay) ctx.setCols(c);
         return { body: <BodyNote>grid → {c} cols</BodyNote> };
       }
-      return { body: <BodyNote tone="prompt-c">usage: cols 4 | 5</BodyNote> };
+      return {
+        body: (
+          <BodyNote tone="prompt-c">
+            usage: cols {ctx.isMobile ? "1 | 2" : "4 | 5"}
+          </BodyNote>
+        ),
+      };
     }
 
     case "clear":
@@ -1112,9 +1140,13 @@ export default function TerminalWall({ photos, albumTotal, bio, avatar, resume, 
   const { resolvedTheme, setTheme: setSiteTheme } = useTheme();
   const { isAuthenticated } = useAuth();
 
+  // On mobile (≤600px) default to 2 cols and show 10 photos; desktop uses 5 / 20.
+  const isMobile = typeof window !== "undefined" && window.innerWidth <= 600;
+  const PHOTO_LIMIT = isMobile ? 10 : 20;
+
   // Shuffle once per load — a random arrangement (and a random selection when
-  // the album has more than 20).
-  const displayPhotos = useMemo(() => shuffle(photos).slice(0, 20), [photos]);
+  // the album has more than PHOTO_LIMIT).
+  const displayPhotos = useMemo(() => shuffle(photos).slice(0, PHOTO_LIMIT), [photos, PHOTO_LIMIT]);
   // Bio is stateful so the inline `nano about.md` editor can reflect a save
   // without a full reload.
   const [bioText, setBioText] = useState(bio ?? DEFAULT_BIO);
@@ -1134,7 +1166,8 @@ export default function TerminalWall({ photos, albumTotal, bio, avatar, resume, 
       : resolvedTheme === "matrix"
         ? "matrix"
         : "light";
-  const [cols, setCols] = useState(5);
+
+  const [cols, setCols] = useState(isMobile ? 2 : 5);
 
   // Window chrome state (mac traffic-light behaviour). Maximized (widened) and
   // minimized are independent, so a maximized window stays widened after it's
@@ -1269,10 +1302,12 @@ export default function TerminalWall({ photos, albumTotal, bio, avatar, resume, 
   const makeCtx = useCallback(
     (replay: boolean, colsValue: number = cols): CmdCtx => ({
       // Full album pool — each `flickr` invocation re-shuffles this and
-      // slices its own 20 (no shared snapshot across calls).
+      // slices its own subset (10 on mobile, 20 on desktop). No shared
+      // snapshot across calls.
       photos,
       albumTotal,
       cols: colsValue,
+      isMobile,
       bio: bioText,
       avatar,
       isAuthenticated,
@@ -1393,11 +1428,17 @@ export default function TerminalWall({ photos, albumTotal, bio, avatar, resume, 
           cols?: number;
           history?: string[];
         };
-        if (typeof saved.cols === "number") setCols(saved.cols);
+        if (typeof saved.cols === "number") {
+          // Clamp the saved cols to a viewport-valid value (mobile: 1-2, desktop: 4-5).
+          const validCols = isMobile ? [1, 2] : [4, 5];
+          if (validCols.includes(saved.cols)) setCols(saved.cols);
+        }
         if (Array.isArray(saved.history)) setHistory(saved.history);
         if (saved.hideInitial) setHideInitial(true);
         if (Array.isArray(saved.cmds) && saved.cmds.length) {
-          const ctx = makeCtx(true, saved.cols ?? cols);
+          const validCols = isMobile ? [1, 2] : [4, 5];
+          const restoreCols = typeof saved.cols === "number" && validCols.includes(saved.cols) ? saved.cols : cols;
+          const ctx = makeCtx(true, restoreCols);
           setSessionBlocks(
             saved.cmds.map((c) => {
               sessionIdRef.current += 1;
@@ -1501,7 +1542,7 @@ export default function TerminalWall({ photos, albumTotal, bio, avatar, resume, 
       const cmd = text.slice(0, sp).toLowerCase();
       head = cmd + " ";
       partial = text.slice(sp + 1).replace(/^\s+/, "").toLowerCase();
-      pool = ARG_OPTIONS[cmd] ?? [];
+      pool = cmd === "cols" ? colsOptions() : (ARG_OPTIONS[cmd] ?? []);
     }
 
     if (head === "" && partial === "") {
@@ -1792,8 +1833,8 @@ export default function TerminalWall({ photos, albumTotal, bio, avatar, resume, 
       {/* ── Shutdown overlay (red ×) ───────────────────────────────── */}
       {closed && (
         <div className="yjt-shutdown" role="dialog" aria-modal="true" aria-label="connection closed">
-          <span className="yjt-shutdown-dot" aria-hidden="true" />
           <span className="yjt-shutdown-text">
+            <span className="yjt-shutdown-dot" aria-hidden="true" />
             [ connection closed —{" "}
             <button type="button" className="yjt-shutdown-restart" onClick={restartSession}>
               click to restart

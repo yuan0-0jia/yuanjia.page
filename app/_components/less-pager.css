@@ -13,22 +13,41 @@
   display: flex;
   flex-direction: column;
   /* Reserve space for the surrounding chrome so the page never scrolls when
-     the pager fits inside the viewport. Reserved = body pb-20 (80) +
-     yjt-root padding (60) + yjt-chrome (~40) + yjt-body-pane padding (60) +
-     yjt-window border (2) ≈ 248. Clamped so tiny screens still get a usable
-     pager and big screens cap at 640. */
-  height: clamp(320px, calc(100dvh - 248px), 640px);
+     the pager fits inside the viewport. Mobile (< 600px) reserves ~192px
+     (body pb-16 + tighter root/body-pane padding); desktop reserves ~248px.
+     Clamped so tiny screens still get a usable pager and big screens cap at 640. */
+  height: clamp(320px, calc(100dvh - 192px), 640px);
+  /* Clip horizontal overflow at the pager boundary so a single unbreakable
+     token (e.g. a long URL or "(spec→plan→execute)") can't trigger
+     document-wide horizontal scroll. The viewport child still scrolls
+     vertically as expected. */
+  overflow-x: hidden;
+  animation: less-pager-in 0.35s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+@media (min-width: 600px) {
+  .less-host { height: clamp(320px, calc(100dvh - 248px), 640px); }
+}
+@keyframes less-pager-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .less-host { animation: none; }
+  .less-viewport { scroll-behavior: auto; }
 }
 
 .less-viewport {
   flex: 1;
   min-height: 0; /* allow the flex child to shrink below intrinsic content height */
   overflow-y: auto;
-  padding: 20px 28px 26px;
+  padding: 16px 18px 22px;
   scroll-behavior: smooth;
   scrollbar-width: thin;
   scrollbar-color: var(--soft) transparent;
   outline: none;
+}
+@media (min-width: 600px) {
+  .less-viewport { padding: 20px 28px 26px; }
 }
 .less-viewport::-webkit-scrollbar { width: 8px; }
 .less-viewport::-webkit-scrollbar-thumb {
@@ -60,6 +79,11 @@
   color: color-mix(in oklch, var(--paper) 70%, transparent);
 }
 .less-statusbar .pct { color: var(--paper); font-weight: 600; }
+@media (max-width: 480px) {
+  .less-statusbar { gap: 10px; padding: 4px 12px; }
+  .less-statusbar .left { gap: 10px; }
+  .less-statusbar .right { gap: 8px; }
+}
 
 /* Bottom command bar */
 .less-cmd {
@@ -71,9 +95,9 @@
   gap: 18px;
   font-family: var(--font-mono);
   font-size: 11.5px;
+  line-height: 1;
   color: var(--soft);
   flex-shrink: 0;
-  flex-wrap: wrap;
 }
 .less-cmd .key { display: inline-flex; align-items: baseline; gap: 5px; }
 .less-cmd .key kbd {
@@ -88,10 +112,56 @@
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
 }
 .less-cmd .spacer { flex: 1; }
-.less-cmd .esc { display: inline-flex; align-items: center; gap: 6px; }
-.less-cmd .keys-row { display: flex; gap: 18px; flex-wrap: wrap; align-items: baseline; }
+.less-cmd .esc {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  /* Real button: clickable affordance with a generous touch target */
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 3px 8px;
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.less-cmd .esc:hover,
+.less-cmd .esc:focus-visible {
+  background: var(--accent);
+  color: var(--paper);
+  border-color: var(--accent);
+  outline: none;
+}
+@media (max-width: 600px) {
+  /* Bigger tap target on touch viewports (≥36px height) */
+  .less-cmd .esc { padding: 8px 14px; font-size: 12px; min-height: 36px; }
+}
 
-.less-search { display: flex; flex: 1; min-width: 200px; align-items: center; gap: 8px; }
+/* Stack menu + search in the same grid cell so the bar height is fixed
+   to the menu's natural height — switching modes never resizes. */
+.less-cmd-stack {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+}
+.less-cmd-stack > * {
+  grid-area: 1 / 1;
+  min-width: 0;
+}
+.less-cmd .keys-row,
+.less-cmd .less-search {
+  transition: opacity 0.15s ease;
+}
+.less-cmd:not(.is-searching) .less-search { opacity: 0; pointer-events: none; }
+.less-cmd.is-searching .keys-row { opacity: 0; pointer-events: none; }
+
+.less-cmd .keys-row { display: flex; gap: 18px; flex-wrap: nowrap; align-items: center; overflow: hidden; }
+
+.less-search { display: flex; flex: 1; min-width: 0; align-items: center; gap: 8px; }
 .less-search .slash { color: var(--accent); font-weight: 500; }
 .less-search input {
   flex: 1;
@@ -122,10 +192,26 @@
   margin: 0 0 14px;
 }
 .less-sub .pipe { opacity: 0.4; padding: 0 8px; }
+@media (max-width: 600px) {
+  .less-sub .pipe { display: none; }
+  .less-sub br { display: block; }
+}
+.less-sub .pipe { opacity: 0.4; padding: 0 8px; }
+@media (max-width: 600px) {
+  .less-sub .pipe { display: none; }
+  .less-sub br { display: block; }
+}
 
 .less-contact {
   margin: 0 0 22px;
   color: var(--soft);
+}
+.less-contact > span {
+  /* Each contact (link + trailing pipe) stays adhered as a unit; the link
+     text wraps on natural breaks. inline-block prevents an orphan "|" at
+     the start of a line. */
+  display: inline-block;
+  max-width: 100%;
 }
 .less-contact a {
   color: var(--accent);
@@ -133,6 +219,12 @@
 }
 .less-contact a:hover { text-decoration: underline; }
 .less-contact .pipe { opacity: 0.4; padding: 0 8px; }
+@media (max-width: 600px) {
+  /* Stack each contact on its own line — URLs/emails would still individually
+     fit a mobile width, but a single row of all five contacts would not. */
+  .less-contact > span { display: block; }
+  .less-contact .pipe { display: none; }
+}
 
 .less-hr {
   border: 0;
@@ -170,6 +262,9 @@
   gap: 14px;
   flex-wrap: wrap;
   align-items: baseline;
+}
+@media (max-width: 480px) {
+  .less-entry-head { flex-direction: column; gap: 2px; align-items: flex-start; }
 }
 .less-entry-name { font-weight: 600; color: var(--ink); }
 .less-entry-name .sep { color: var(--soft); font-weight: 400; margin: 0 6px; }
@@ -214,8 +309,21 @@
   gap: 14px;
   align-items: baseline;
 }
+@media (max-width: 600px) {
+  .less-skill-row { grid-template-columns: 1fr; gap: 2px; }
+  .less-skill-row dt { margin-top: 4px; }
+}
 .less-skill-row dt { color: var(--accent); font-weight: 500; }
-.less-skill-row dd { margin: 0; color: var(--ink); }
+.less-skill-row dd {
+  margin: 0;
+  color: var(--ink);
+  min-width: 0; /* let the 1fr column actually shrink below content size */
+}
+/* Each item span uses inline-block so its trailing bullet stays adhered to
+   the item (no orphan dot at line-start). Words within an item still wrap
+   on natural breaks (spaces); a single token longer than the cell will
+   overflow visibly but is clipped by .less-host's overflow-x: hidden. */
+.less-skill-row dd > span { display: inline-block; max-width: 100%; }
 .less-skill-row dd .bullet { color: var(--soft); opacity: 0.6; margin: 0 5px; }
 
 .less-edu { margin-bottom: 8px; }
@@ -249,6 +357,7 @@
   color: var(--ink);
   border-radius: 2px;
   padding: 0 2px;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 .less-hi.is-current {
   background: var(--accent);

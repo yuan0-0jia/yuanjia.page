@@ -18,7 +18,7 @@ export default function ResumeScreen({ resume }: { resume: Resume }) {
   const order = resolveSectionOrder(resume.sectionOrder, resume.customSections);
 
   return (
-    <div className="resume-screen mx-4 md:mx-12 lg:mx-20 my-12 md:my-16 flex flex-col items-center p-4">
+    <div className="resume-screen mx-4 sm:mx-8 md:mx-12 lg:mx-20 my-10 md:my-16 flex flex-col items-center p-2 sm:p-4">
       <div className="max-w-4xl w-full">
         <ResumeHeader resume={resume} />
         {order.map((key) => (
@@ -69,7 +69,7 @@ function renderSection(key: string, resume: Resume): React.ReactNode {
 
 function ResumeHeader({ resume }: { resume: Resume }) {
   return (
-    <header className="mb-16">
+    <header className="mb-12 md:mb-16">
       <h1 className="resume-display text-ink animate-fade-in-up opacity-0 stagger-1 flex items-baseline gap-3 md:gap-4">
         <span>{resume.name}</span>
         <PrintButton />
@@ -151,7 +151,7 @@ function CategoriesBody({ categories }: { categories: SkillCategory[] }) {
 
 function EntriesBody({ entries }: { entries: Entry[] }) {
   return (
-    <div className="space-y-12">
+    <div className="space-y-8 md:space-y-12">
       {entries.map((p, idx) => (
         <article key={`${p.name}-${idx}`}>
           <div className="mb-3 flex items-baseline justify-between gap-4 flex-wrap">
@@ -233,8 +233,8 @@ function getContactIcon(label: string): IconType {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="mb-16">
-      <div className="flex items-center gap-4 mb-8">
+    <section className="mb-12 md:mb-16">
+      <div className="flex items-center gap-4 mb-6 md:mb-8">
         <span className="resume-eyebrow text-accent">{title}</span>
         <div style={{ flex: 1, height: 1, background: "var(--border)", opacity: 0.5 }} />
       </div>

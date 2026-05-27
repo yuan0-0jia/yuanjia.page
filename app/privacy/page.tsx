@@ -9,10 +9,10 @@ export const dynamic = "force-static";
 
 export default async function Page() {
   return (
-    <main className="mx-4 md:mx-12 lg:mx-20 my-12 md:my-20 flex flex-col items-center px-4 font-mono text-ink">
+    <main className="mx-4 sm:mx-8 md:mx-12 lg:mx-20 my-10 md:my-20 flex flex-col items-center font-mono text-ink">
       <article className="max-w-3xl w-full text-sm md:text-base leading-relaxed">
-        <header className="mb-10">
-          <h1 className="text-xl md:text-2xl text-ink mb-2">
+        <header className="mb-8 md:mb-10">
+          <h1 className="text-xl sm:text-2xl text-ink mb-2">
             Privacy Policy
           </h1>
           <p className="text-xs md:text-sm text-soft">

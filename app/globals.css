@@ -99,10 +99,13 @@
   .resume-display {
     font-family: var(--font-serif, Georgia, serif);
     font-style: italic;
-    font-size: 2.5rem;
+    font-size: 2rem;
     line-height: 1.0;
     letter-spacing: -0.02em;
     font-weight: 600;
+  }
+  @media (min-width: 600px) {
+    .resume-display { font-size: 2.5rem; }
   }
   @media (min-width: 768px) {
     .resume-display { font-size: 3rem; }
@@ -165,13 +168,13 @@
   @keyframes fadeIn    { from { opacity: 0; }                          to { opacity: 1; } }
   @keyframes fadeInUp  { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 
-  .animate-fade-in    { animation: fadeIn   1s ease-out forwards; }
-  .animate-fade-in-up { animation: fadeInUp 1s ease-out forwards; }
+  .animate-fade-in    { animation: fadeIn   0.6s cubic-bezier(0.2, 0.7, 0.3, 1) forwards; }
+  .animate-fade-in-up { animation: fadeInUp 0.6s cubic-bezier(0.2, 0.7, 0.3, 1) forwards; }
 
-  .stagger-1 { animation-delay: 0.15s; }
-  .stagger-2 { animation-delay: 0.40s; }
-  .stagger-3 { animation-delay: 0.65s; }
-  .stagger-4 { animation-delay: 0.90s; }
+  .stagger-1 { animation-delay: 0.08s; }
+  .stagger-2 { animation-delay: 0.20s; }
+  .stagger-3 { animation-delay: 0.32s; }
+  .stagger-4 { animation-delay: 0.44s; }
 
   /* ── Privacy link ───────────────────────────────────────────────── */
   /* A quiet link in the bottom-right corner, in normal flow (not fixed) so it

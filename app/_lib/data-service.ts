@@ -61,6 +61,7 @@ export type FlickrPhoto = {
   title: string;
   src: string;
   srcSmall: string;
+  srcMedium: string;
   width: number;
   height: number;
 };
@@ -73,11 +74,11 @@ export async function getFlickrPhotos(): Promise<FlickrAlbum> {
     return { photos: [], total: 0 };
   }
 
-  // Pull up to 100 photos and rotate a random 20 client-side. per_page caps
+  // Pull up to 100 photos and rotate a random subset client-side. per_page caps
   // the pool we shuffle from; the album's true size comes back in `total`.
-  // extras requests both sizes in one call: url_n (320px) for the grid tiles,
-  // url_b (1024px) for the lightbox.
-  const url = `${FLICKR_API_BASE}/?method=flickr.photosets.getPhotos&api_key=${apiKey}&photoset_id=${FLICKR_PHOTOSET_ID}&user_id=${FLICKR_USER_ID}&extras=url_n,url_b&format=json&nojsoncallback=1&per_page=100`;
+  // extras requests three sizes in one call: url_n (320px) for tiny tiles,
+  // url_c (800px) for retina mobile tiles, url_b (1024px) for the lightbox.
+  const url = `${FLICKR_API_BASE}/?method=flickr.photosets.getPhotos&api_key=${apiKey}&photoset_id=${FLICKR_PHOTOSET_ID}&user_id=${FLICKR_USER_ID}&extras=url_n,url_c,url_b&format=json&nojsoncallback=1&per_page=100`;
 
   const res = await fetch(url, { next: { revalidate: 3600 } });
 
@@ -98,6 +99,7 @@ export async function getFlickrPhotos(): Promise<FlickrAlbum> {
       id: string;
       title: string;
       url_n?: string;
+      url_c?: string;
       url_b?: string;
       width_b?: string | number;
       height_b?: string | number;
@@ -109,6 +111,10 @@ export async function getFlickrPhotos(): Promise<FlickrAlbum> {
       // url_n is missing for a small subset of photos; fall back to the
       // constructed _n.jpg before giving up and using the large URL.
       const small = photo.url_n || `${base}_n.jpg` || large;
+      // url_c (800px) is the sweet spot for retina mobile tiles — at cols=2
+      // on a 400px viewport with 2-3× DPR, the browser needs 350-500px of
+      // pixels, so 800px source stays sharp without being wasteful.
+      const medium = photo.url_c || `${base}_c.jpg` || large;
       // Flickr returns width_b/height_b alongside url_b — keep them on the
       // photo so the lightbox can reserve aspect-ratio'd space before the
       // image loads (no layout shift on open). Fallback to a 3:2 landscape
@@ -120,6 +126,7 @@ export async function getFlickrPhotos(): Promise<FlickrAlbum> {
         title: photo.title,
         src: large,
         srcSmall: small,
+        srcMedium: medium,
         width,
         height,
       };
