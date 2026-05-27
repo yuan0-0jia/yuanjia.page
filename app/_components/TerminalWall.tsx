@@ -751,8 +751,9 @@ function runCommand(input: string, ctx: CmdCtx): CmdResult {
       if (r.kind === "dir") {
         return { body: <BodyNote tone="prompt-c">less: {args[0]}: Is a directory</BodyNote> };
       }
-      // Files: resume.md opens the pager modal; other files fall back to
-      // their plain content (less of a short file ≈ cat in our world).
+      // Files: resume.md takes over the terminal body pane with the less
+      // pager; other files fall back to their plain content (less of a
+      // short file ≈ cat in our world).
       if (r.key === "resume.md") {
         if (!ctx.replay) ctx.openResume();
         return { body: <BodyNote>opening ~/resume.md…</BodyNote> };

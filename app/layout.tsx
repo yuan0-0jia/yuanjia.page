@@ -47,10 +47,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-  modal,
 }: Readonly<{
   children: React.ReactNode;
-  modal?: React.ReactNode;
 }>) {
   return (
     <html
@@ -78,7 +76,6 @@ export default function RootLayout({
           <AuthProvider>
             <DockProvider>
               {children}
-              {modal}
               <StatusBar />
               {/* Privacy lives here (not the status bar) — unobtrusive, but
                   present on every page for Google OAuth brand verification. */}
