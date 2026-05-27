@@ -862,7 +862,7 @@ function runCommand(input: string, ctx: CmdCtx): CmdResult {
         if (!ctx.replay) ctx.openBioEditor();
         return { body: <BodyNote>GNU nano — editing ~/about.md…</BodyNote> };
       }
-      if (["resume", "cv", "resume.md", "~/resume.md", "resume.json", "~/resume"].includes(file)) {
+      if (["resume", "cv", "resume.md", "~/resume.md", "~/resume"].includes(file)) {
         if (!ctx.replay) ctx.openResumeEditor();
         return { body: <BodyNote>GNU nano — editing ~/resume.md…</BodyNote> };
       }
@@ -1151,7 +1151,7 @@ export default function TerminalWall({ photos, albumTotal, bio, avatar, resume, 
   // Bio is stateful so the inline `nano about.md` editor can reflect a save
   // without a full reload.
   const [bioText, setBioText] = useState(bio ?? DEFAULT_BIO);
-  // The file open in the inline nano editor (about.md or resume.json), or null
+  // The file open in the inline nano editor (about.md or resume.md), or null
   // when not editing. Auth-gated via the nano command.
   const [nanoFile, setNanoFile] = useState<NanoFile | null>(null);
   // Resume currently being paged via `less ~/resume.md`. Non-null = pager open.
@@ -1389,7 +1389,7 @@ export default function TerminalWall({ photos, albumTotal, bio, avatar, resume, 
       lastLogout,
       sessionStartMs: sessionStartMsRef.current,
     }),
-    [photos, albumTotal, cols, bioText, avatar, resume, isAuthenticated, setSiteTheme, restartSession, history, lastLogin, lastLogout]
+    [photos, albumTotal, cols, bioText, avatar, resume, resumeMd, isAuthenticated, setSiteTheme, restartSession, history, lastLogin, lastLogout]
   );
 
   const submitCommand = useCallback(

@@ -61,16 +61,32 @@ import {
 // ─── Entry parser ────────────────────────────────────────────────────────────
 
 // ### Flyer — Platform Engineer · 5-person agent-driven team  *(2025 – Present)*
-const ENTRY_HEADING = /^###\s+(.+?)(?:\s+[—–]\s+(.+?))?(?:\s+\*\(([^)]+)\)\*\s*)?$/;
+// Parse in stages so we don't depend on optional-non-greedy backtracking.
+function parseEntryHeading(line: string): { name: string; title?: string; period?: string } {
+  let s = line.trim().replace(/^###\s+/, "");
+  let period: string | undefined;
+  // Trailing *(period)*
+  const periodMatch = s.match(/\s+\*\(([^)]+)\)\*\s*$/);
+  if (periodMatch) {
+    period = periodMatch[1].trim();
+    s = s.slice(0, periodMatch.index).trimEnd();
+  }
+  // Split name — title on the first em-dash or en-dash separator
+  const sepMatch = s.match(/\s+[—–]\s+/);
+  if (sepMatch && sepMatch.index !== undefined) {
+    const name = s.slice(0, sepMatch.index).trim();
+    const title = s.slice(sepMatch.index + sepMatch[0].length).trim();
+    return { name, title, period };
+  }
+  return { name: s.trim(), period };
+}
 
 function parseEntryBlock(lines: string[]): Entry {
   const entry: Entry = { name: "", stack: [], bullets: [] };
-  const m = ENTRY_HEADING.exec(lines[0]?.trim() ?? "");
-  if (m) {
-    entry.name = m[1].trim();
-    if (m[2]) entry.title = m[2].trim();
-    if (m[3]) entry.period = m[3].trim();
-  }
+  const heading = parseEntryHeading(lines[0] ?? "");
+  entry.name = heading.name;
+  if (heading.title) entry.title = heading.title;
+  if (heading.period) entry.period = heading.period;
 
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i].trim();
@@ -114,14 +130,23 @@ function parseEntryBlock(lines: string[]): Entry {
 function parseEntriesSection(lines: string[]): Entry[] {
   const entries: Entry[] = [];
   let buffer: string[] = [];
+  // Only start collecting once we've seen the first ###. Leading blank lines
+  // or stray paragraphs before the first entry would otherwise produce an
+  // empty Entry on flush.
+  let inEntry = false;
 
   const flush = () => {
     if (buffer.length > 0) { entries.push(parseEntryBlock(buffer)); buffer = []; }
   };
 
   for (const line of lines) {
-    if (/^###\s/.test(line)) { flush(); buffer = [line]; }
-    else buffer.push(line);
+    if (/^###\s/.test(line)) {
+      flush();
+      buffer = [line];
+      inEntry = true;
+    } else if (inEntry) {
+      buffer.push(line);
+    }
   }
   flush();
   return entries;

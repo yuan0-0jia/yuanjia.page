@@ -12,7 +12,7 @@ export type NanoFile = {
 
 const lineCount = (s: string) => (s ? s.split("\n").length : 0);
 
-// Inline nano editor for ~/about.md and resume.json. A nano-style takeover of
+// Inline nano editor for ~/about.md and ~/resume.md. A nano-style takeover of
 // the terminal body: title bar, editable buffer, status line, and the ^O Write
 // Out / ^X Exit chords (keyboard + clickable). Auth is enforced upstream (the
 // nano command) and again in the action that backs `file.save`.
@@ -114,7 +114,7 @@ export default function NanoEditor({
           if (status) setStatus("");
         }}
         onKeyDown={handleKeyDown}
-        aria-label="about.md contents"
+        aria-label={`${file.name} contents`}
       />
 
       <div className="yjt-nano-status" aria-live="polite">
