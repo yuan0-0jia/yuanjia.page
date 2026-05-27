@@ -1,7 +1,106 @@
 
-/* Resume print styles — used by /resume page for both screen preview and
-   the browser's print dialog. (The intercepted modal route was removed in
-   favor of the in-terminal less ~/resume.md pager.) */
+/* Resume styles — screen sidebar layout + print rules for /resume.
+   (The intercepted modal route was removed in favor of the in-terminal
+   less ~/resume.md pager.) */
+
+/* ================================================================== */
+/* SCREEN SIDEBAR LAYOUT (used by ResumeScreen)                       */
+/* ================================================================== */
+
+/* The StatusBar is homepage chrome — hide it whenever the resume screen
+   is mounted (i.e. on /resume) so the page is just the résumé. The body
+   pb-20 in the root layout reserves space for the StatusBar; with it
+   gone, drop that reserve too (the screen's own py-* handles bottom
+   spacing). */
+body:has(.resume-screen) .statusbar { display: none; }
+body:has(.resume-screen) { padding-bottom: 0; }
+
+/* 1px paper-border divider — used by the header rule below the
+   name/tagline block and by the section-title's flex-fill rule. */
+.resume-rule {
+  height: 1px;
+  background: var(--border);
+  opacity: 0.5;
+}
+
+/* ── Single-column layout (mobile + tablet, below lg/1024px) ──────────
+   rs-rail uses `display: contents` so its three children become direct
+   flex items of resume-grid alongside rs-main — that lets `order`
+   reorder them: Contact → Experience → Skills → Education (meatiest
+   content right after the compact contact card).
+
+   The resume-grid gap is the *section-break* spacing between top-level
+   sections (Contact ↔ Experience ↔ Skills ↔ Education). The rs-main
+   gap (below) is the matching spacing between sections *inside* main
+   (Experience ↔ custom-entries). Both ramp on the same 3-tier scale so
+   the visual rhythm is uniform whether two sections are siblings in
+   the grid or siblings inside main. */
+.resume-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+.rs-rail { display: contents; }
+.rs-contact   { order: 1; }
+.rs-main      { order: 2; }
+.rs-skills    { order: 3; }
+.rs-education { order: 4; }
+
+.rs-main {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  /* min-width: 0 lets long words / inline code spans wrap inside the
+     container instead of forcing it wider than its track allows. */
+  min-width: 0;
+}
+
+@media (min-width: 768px) {
+  .resume-grid { gap: 40px; }
+  .rs-main { gap: 40px; }
+}
+
+/* Single-column contact: items flow as a wrapping row above Experience. */
+.rs-contact ul {
+  flex-direction: row;
+  flex-wrap: wrap;
+  column-gap: 20px;
+  row-gap: 8px;
+}
+
+/* ── Two-column layout (desktop, lg+) ─────────────────────────────────
+   rs-rail becomes a flex column in col 1 (sections stack tight to the
+   top via `align-items: start` on the grid); rs-main is a separate
+   grid item in col 2 and keeps its own flex-column for between-section
+   spacing. */
+@media (min-width: 1024px) {
+  .resume-grid {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    column-gap: 48px;
+    row-gap: 0;
+    align-items: start;
+  }
+  .rs-rail {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .rs-main { gap: 48px; }
+  /* Narrow rail: contact items stack vertically. */
+  .rs-contact ul {
+    flex-direction: column;
+    column-gap: 0;
+    row-gap: 10px;
+  }
+}
+
+/* Print path (anyone printing /resume directly) — collapse to single
+   column. The dedicated ResumePrint component is the canonical print
+   target, but this keeps a stray print of the screen view sane too. */
+@media print {
+  .resume-grid { display: block; }
+}
 
 /* ================================================================== */
 /* PRINT LAYOUT (used by /resume page — print media + on-screen preview) */
