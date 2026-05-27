@@ -72,7 +72,7 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://live.staticflickr.com" />
       </head>
       <body
-        className={`antialiased flex flex-col relative min-h-screen bg-[--paper] text-[--ink] font-sans pb-28`}
+        className={`antialiased flex flex-col relative min-h-screen bg-[--paper] text-[--ink] font-sans pb-20`}
       >
         <ThemeProviders>
           <AuthProvider>

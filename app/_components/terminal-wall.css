@@ -61,10 +61,12 @@ html.matrix .yjt-root {
 }
 
 /* ── Root layout ─────────────────────────────────────────────────── */
-/* Fills the viewport (no navbar); body reserves the status-bar band via pb-28. */
+/* Fills the viewport (no navbar); body reserves the status-bar band via pb-20
+   (clears the fixed StatusBar at bottom:16 + height:34 ≈ 50px, with breathing
+   room above it so the terminal window isn't visually crowded at scroll-end). */
 .yjt-root {
   position: relative; /* containing block for minimized-desktop overlays */
-  min-height: calc(100dvh - 7rem);
+  min-height: calc(100dvh - 5rem);
   padding: 28px 24px 32px;
   display: flex;
   align-items: flex-start;
@@ -76,7 +78,7 @@ html.matrix .yjt-root {
    window fades/scales to opacity 0 anyway (clipping it is fine), and the idle
    note (absolute, inset 0) is left centered in the viewport. */
 .yjt-root[data-minimized] {
-  height: calc(100dvh - 7rem);
+  height: calc(100dvh - 5rem);
   overflow: hidden;
 }
 /* Fixed, full-viewport dotted backdrop so the terminal AND the status bar that

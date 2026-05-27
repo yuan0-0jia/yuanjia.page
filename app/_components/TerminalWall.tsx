@@ -30,6 +30,12 @@ const AvatarUpload = dynamic(() => import("./AvatarUpload"), {
   loading: () => null,
 });
 
+// Public but interaction-gated — only mounts when the user runs `less`.
+const LessPager = dynamic(() => import("./LessPager"), {
+  ssr: false,
+  loading: () => null,
+});
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface FlickrPhoto {
@@ -77,6 +83,7 @@ interface CmdCtx {
   openResumeEditor: () => void;
   openExternal: (url: string) => void;
   composeEmail: () => void;
+  openResume: () => void;
   setTheme: (t: TermTheme) => void;
   setCols: (c: number) => void;
   clear: () => void;
@@ -141,6 +148,7 @@ const COMMANDS = [
   { name: "ls", desc: "list home directory" },
   { name: "ls links", desc: "list links" },
   { name: "cat <file>", desc: "read about.md, resume.md, …" },
+  { name: "less <file>", desc: "page resume.md" },
   { name: "flickr fetch", desc: "view photo grid (random 20)" },
   { name: "github", desc: "open github ↗" },
   { name: "linkedin", desc: "open linkedin ↗" },
@@ -157,7 +165,7 @@ const COMPLETIONS = [
   "options", "whoami", "ls", "flickr",
   "github", "linkedin", "email", "theme", "cols", "clear",
   "restart", "exit",
-  "pwd", "cd", "cat", "which", "man", "history", "last", "uptime",
+  "pwd", "cd", "cat", "less", "which", "man", "history", "last", "uptime",
 ];
 const ARG_OPTIONS: Record<string, string[]> = {
   theme: ["light", "dark", "matrix"],
@@ -165,6 +173,7 @@ const ARG_OPTIONS: Record<string, string[]> = {
   ls: ["links"],
   cd: ["links"],
   cat: ["about.md", "resume.md"],
+  less: ["about.md", "resume.md"],
   man: ["yuan"],
   which: ["yuan"],
   flickr: ["fetch"],
@@ -340,7 +349,7 @@ function BodyWhoami({
           <AvatarUpload src={avatar} />
         ) : (
           <div className="yjt-whoami-avatar">
-            <Image src={avatar} alt="Yuan Jia" width={96} height={96} draggable={false} />
+            <Image src={avatar} alt="Yuan Jia" width={96} height={96} draggable={false} priority />
           </div>
         ))}
       <div className="yjt-whoami-info">
@@ -699,6 +708,32 @@ function runCommand(input: string, ctx: CmdCtx): CmdResult {
       }
       if (r.kind === "dir") {
         return { body: <BodyNote tone="prompt-c">cat: {args[0]}: Is a directory</BodyNote> };
+      }
+      return { body: renderEntry(r.key, ctx) };
+    }
+
+    case "less": {
+      if (!args[0]) {
+        return { body: <BodyNote tone="prompt-c">less: Missing filename (&quot;less --help&quot; for help)</BodyNote> };
+      }
+      const r = fsResolve(args[0]);
+      if (r.type === "home" || r.type === "parent") {
+        return { body: <BodyNote tone="prompt-c">less: {args[0]}: Is a directory</BodyNote> };
+      }
+      if (r.type === "system") {
+        return { body: <BodyNote tone="prompt-c">less: {args[0]}: Permission denied</BodyNote> };
+      }
+      if (r.type === "invalid") {
+        return { body: <BodyNote tone="prompt-c">less: {args[0]}: No such file or directory</BodyNote> };
+      }
+      if (r.kind === "dir") {
+        return { body: <BodyNote tone="prompt-c">less: {args[0]}: Is a directory</BodyNote> };
+      }
+      // Files: resume.md opens the pager modal; other files fall back to
+      // their plain content (less of a short file ≈ cat in our world).
+      if (r.key === "resume.md") {
+        if (!ctx.replay) ctx.openResume();
+        return { body: <BodyNote>opening ~/resume.md…</BodyNote> };
       }
       return { body: renderEntry(r.key, ctx) };
     }
@@ -1086,6 +1121,9 @@ export default function TerminalWall({ photos, albumTotal, bio, avatar, resume, 
   // The file open in the inline nano editor (about.md or resume.json), or null
   // when not editing. Auth-gated via the nano command.
   const [nanoFile, setNanoFile] = useState<NanoFile | null>(null);
+  // Resume currently being paged via `less ~/resume.md`. Non-null = pager open.
+  // Same body-pane-takeover pattern as nanoFile; cleared on q/Esc or restart.
+  const [lessResume, setLessResume] = useState<Resume | null>(null);
 
   // Theme is unified with the rest of the site (next-themes) — the in-terminal
   // `theme` command is the single control. Mirror the site theme as the
@@ -1199,6 +1237,7 @@ export default function TerminalWall({ photos, albumTotal, bio, avatar, resume, 
     setHistIdx(-1);
     setSkipIntro(false);
     setRunId((r) => r + 1);
+    setLessResume(null);
     // Fresh login timestamp for the new session.
     sessionStartMsRef.current = Date.now();
   }, []);
@@ -1282,6 +1321,18 @@ export default function TerminalWall({ photos, albumTotal, bio, avatar, resume, 
       openExternal: (url) => window.open(url, "_blank", "noopener"),
       composeEmail: () => {
         window.location.href = "mailto:hello.yuanjia@gmail.com";
+      },
+      openResume: async () => {
+        // Fall back to the static fixture only if Supabase hasn't seeded a
+        // row — dynamic-imported so the 472-line constant doesn't ride along
+        // with the main bundle for the common case.
+        let r = resume;
+        if (!r) {
+          const mod = await import("../resume/data");
+          r = mod.RESUME;
+        }
+        setLessResume(r);
+        window.scrollTo({ top: 0 });
       },
       setTheme: (t) => setSiteTheme(t),
       setCols: (c) => setCols(c),
@@ -1604,6 +1655,8 @@ export default function TerminalWall({ photos, albumTotal, bio, avatar, resume, 
         <main className="yjt-body-pane">
           {nanoFile ? (
             <NanoEditor file={nanoFile} onClose={() => setNanoFile(null)} />
+          ) : lessResume ? (
+            <LessPager resume={lessResume} onClose={() => setLessResume(null)} />
           ) : (
             <>
           {!hideInitial &&

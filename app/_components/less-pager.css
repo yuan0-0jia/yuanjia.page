@@ -1,0 +1,263 @@
+/* ─────────────────────────────────────────────────────────────────────
+   less ~/resume.md — in-terminal pager styling.
+   Lives inside the existing .yjt-window body pane (no overlay / no
+   nested chrome). Mirrors the yjt-nano pattern.
+   ───────────────────────────────────────────────────────────────────── */
+
+.less-host {
+  background: var(--paper);
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  /* Reserve space for the surrounding chrome so the page never scrolls when
+     the pager fits inside the viewport. Reserved = body pb-20 (80) +
+     yjt-root padding (60) + yjt-chrome (~40) + yjt-body-pane padding (60) +
+     yjt-window border (2) ≈ 248. Clamped so tiny screens still get a usable
+     pager and big screens cap at 640. */
+  height: clamp(320px, calc(100dvh - 248px), 640px);
+}
+
+.less-viewport {
+  flex: 1;
+  min-height: 0; /* allow the flex child to shrink below intrinsic content height */
+  overflow-y: auto;
+  padding: 20px 28px 26px;
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: var(--soft) transparent;
+  outline: none;
+}
+.less-viewport::-webkit-scrollbar { width: 8px; }
+.less-viewport::-webkit-scrollbar-thumb {
+  background: color-mix(in oklch, var(--soft), transparent 50%);
+  border-radius: 4px;
+}
+
+/* Top status bar — inverted (dark) */
+.less-statusbar {
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  letter-spacing: 0.04em;
+  padding: 4px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-shrink: 0;
+}
+.less-statusbar .left { display: flex; gap: 14px; align-items: baseline; }
+.less-statusbar .left .file { font-weight: 600; }
+.less-statusbar .left .pos { color: color-mix(in oklch, var(--paper) 70%, transparent); }
+.less-statusbar .right {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  color: color-mix(in oklch, var(--paper) 70%, transparent);
+}
+.less-statusbar .pct { color: var(--paper); font-weight: 600; }
+
+/* Bottom command bar */
+.less-cmd {
+  background: var(--paper-deep);
+  border-top: 1px solid var(--border);
+  padding: 7px 14px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--soft);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+.less-cmd .key { display: inline-flex; align-items: baseline; gap: 5px; }
+.less-cmd .key kbd {
+  font-family: var(--font-mono);
+  background: var(--paper);
+  color: var(--ink);
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
+}
+.less-cmd .spacer { flex: 1; }
+.less-cmd .esc { display: inline-flex; align-items: center; gap: 6px; }
+.less-cmd .keys-row { display: flex; gap: 18px; flex-wrap: wrap; align-items: baseline; }
+
+.less-search { display: flex; flex: 1; min-width: 200px; align-items: center; gap: 8px; }
+.less-search .slash { color: var(--accent); font-weight: 500; }
+.less-search input {
+  flex: 1;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  font: inherit;
+  color: var(--ink);
+  caret-color: var(--accent);
+}
+.less-search input::placeholder { color: var(--soft); opacity: 0.7; }
+.less-search input::-webkit-search-cancel-button { display: none; }
+.less-search .count { color: var(--soft); font-size: 10.5px; }
+
+/* ─── Content blocks ────────────────────────────────────────────────── */
+
+.less-h1 {
+  font-family: var(--font-mono);
+  font-size: 18px;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0 0 2px;
+  text-transform: uppercase;
+}
+.less-sub {
+  color: var(--soft);
+  margin: 0 0 14px;
+}
+.less-sub .pipe { opacity: 0.4; padding: 0 8px; }
+
+.less-contact {
+  margin: 0 0 22px;
+  color: var(--soft);
+}
+.less-contact a {
+  color: var(--accent);
+  text-decoration: none;
+}
+.less-contact a:hover { text-decoration: underline; }
+.less-contact .pipe { opacity: 0.4; padding: 0 8px; }
+
+.less-hr {
+  border: 0;
+  border-top: 1px dashed color-mix(in oklch, var(--soft), transparent 60%);
+  margin: 20px 0 18px;
+}
+
+.less-h2 {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.22em;
+  color: var(--accent);
+  text-transform: uppercase;
+  margin: 24px 0 12px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.less-h2::before {
+  content: "##";
+  color: color-mix(in oklch, var(--accent), transparent 50%);
+  letter-spacing: 0;
+}
+.less-h2 .rule {
+  flex: 1;
+  height: 1px;
+  background: color-mix(in oklch, var(--accent), transparent 70%);
+}
+
+.less-entry { margin-bottom: 18px; }
+.less-entry-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  align-items: baseline;
+}
+.less-entry-name { font-weight: 600; color: var(--ink); }
+.less-entry-name .sep { color: var(--soft); font-weight: 400; margin: 0 6px; }
+.less-entry-name .role { color: var(--soft); font-style: italic; font-weight: 400; }
+.less-entry-period { color: var(--soft); white-space: nowrap; }
+.less-entry-stack { color: var(--soft); opacity: 0.85; font-size: 12.5px; margin-top: 2px; }
+.less-entry-summary {
+  color: var(--soft);
+  border-left: 2px solid var(--accent);
+  padding-left: 10px;
+  margin: 8px 0;
+  font-style: italic;
+}
+
+.less-bullets { list-style: none; padding: 0; margin: 4px 0 0; }
+.less-bullets li {
+  position: relative;
+  padding-left: 18px;
+  margin-bottom: 6px;
+  color: var(--ink);
+}
+.less-bullets li::before {
+  content: "─";
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: var(--accent);
+}
+.less-bullets li code {
+  background: var(--card);
+  border: 1px solid var(--border);
+  padding: 0 5px;
+  border-radius: 3px;
+  font-size: 0.92em;
+}
+.less-bullets li strong { font-weight: 600; color: var(--ink); }
+
+.less-skills { display: grid; gap: 6px; }
+.less-skill-row {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 14px;
+  align-items: baseline;
+}
+.less-skill-row dt { color: var(--accent); font-weight: 500; }
+.less-skill-row dd { margin: 0; color: var(--ink); }
+.less-skill-row dd .bullet { color: var(--soft); opacity: 0.6; margin: 0 5px; }
+
+.less-edu { margin-bottom: 8px; }
+.less-edu .school { font-weight: 600; }
+.less-edu .deg { color: var(--soft); }
+.less-edu .period { color: var(--soft); opacity: 0.7; font-size: 12.5px; }
+
+.less-eof {
+  color: var(--soft);
+  opacity: 0.6;
+  margin-top: 24px;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-style: italic;
+}
+.less-eof::before,
+.less-eof::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  min-width: 40px;
+  background: color-mix(in oklch, var(--soft), transparent 70%);
+  display: block;
+}
+
+/* Search highlight */
+.less-hi {
+  background: color-mix(in oklch, #a8770e 60%, transparent);
+  color: var(--ink);
+  border-radius: 2px;
+  padding: 0 2px;
+}
+.less-hi.is-current {
+  background: var(--accent);
+  color: var(--paper);
+}
+
+/* On narrow viewports, hide keyboard hints — inert on touch */
+@media (max-width: 600px) {
+  .less-cmd .keys-row { display: none; }
+  .less-cmd { justify-content: flex-end; }
+  .less-statusbar .pos { display: none; }
+}

@@ -28,7 +28,7 @@ export default function AvatarUpload({ src }: { src: string }) {
       title="Replace avatar"
       aria-label="Replace avatar"
     >
-      <Image src={src} alt="Yuan Jia" width={96} height={96} draggable={false} />
+      <Image src={src} alt="Yuan Jia" width={96} height={96} draggable={false} priority />
       <span className="yjt-avatar-edit-hint">{busy ? "uploading…" : "↑ replace"}</span>
       <input type="file" accept="image/*" onChange={onChange} disabled={busy} hidden />
     </label>
