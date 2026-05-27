@@ -9,15 +9,15 @@ export const dynamic = "force-static";
 
 export default async function Page() {
   return (
-    <main className="mx-4 md:mx-12 lg:mx-20 my-12 md:my-20 flex flex-col items-center px-4 font-mono text-[--ink]">
+    <main className="mx-4 md:mx-12 lg:mx-20 my-12 md:my-20 flex flex-col items-center px-4 font-mono text-ink">
       <article className="max-w-3xl w-full text-sm md:text-base leading-relaxed">
         <header className="mb-10">
-          <h1 className="text-xl md:text-2xl text-[--ink] mb-2">
+          <h1 className="text-xl md:text-2xl text-ink mb-2">
             Privacy Policy
           </h1>
-          <p className="text-xs md:text-sm text-[--soft]">
+          <p className="text-xs md:text-sm text-soft">
             Effective Date:{" "}
-            <span className="text-[--ink]">Oct 29, 2024</span>
+            <span className="text-ink">Oct 29, 2024</span>
           </p>
         </header>
 
@@ -31,7 +31,7 @@ export default async function Page() {
         </section>
 
         <section className="mb-8">
-          <h2 className="text-base md:text-lg text-[--ink] mb-3">
+          <h2 className="text-base md:text-lg text-ink mb-3">
             1. Information We Collect
           </h2>
           <p>
@@ -48,7 +48,7 @@ export default async function Page() {
         </section>
 
         <section className="mb-8">
-          <h2 className="text-base md:text-lg text-[--ink] mb-3">
+          <h2 className="text-base md:text-lg text-ink mb-3">
             2. How We Use Your Information
           </h2>
           <p>
@@ -63,7 +63,7 @@ export default async function Page() {
         </section>
 
         <section className="mb-8">
-          <h2 className="text-base md:text-lg text-[--ink] mb-3">
+          <h2 className="text-base md:text-lg text-ink mb-3">
             3. How We Share Your Information
           </h2>
           <p>
@@ -74,7 +74,7 @@ export default async function Page() {
         </section>
 
         <section className="mb-8">
-          <h2 className="text-base md:text-lg text-[--ink] mb-3">
+          <h2 className="text-base md:text-lg text-ink mb-3">
             4. Data Retention
           </h2>
           <p>
@@ -86,7 +86,7 @@ export default async function Page() {
         </section>
 
         <section className="mb-8">
-          <h2 className="text-base md:text-lg text-[--ink] mb-3">
+          <h2 className="text-base md:text-lg text-ink mb-3">
             5. Data Security
           </h2>
           <p>
@@ -99,7 +99,7 @@ export default async function Page() {
         </section>
 
         <section className="mb-8">
-          <h2 className="text-base md:text-lg text-[--ink] mb-3">
+          <h2 className="text-base md:text-lg text-ink mb-3">
             6. Your Choices and Controls
           </h2>
           <p>You have the right to:</p>
@@ -108,7 +108,7 @@ export default async function Page() {
               Revoke our access to your Google account at any time via your{" "}
               <a
                 href="https://myaccount.google.com/permissions"
-                className="text-[--accent] hover:underline underline-offset-4"
+                className="text-accent hover:underline underline-offset-4"
               >
                 Google Account Settings
               </a>
@@ -122,7 +122,7 @@ export default async function Page() {
         </section>
 
         <section className="mb-8">
-          <h2 className="text-base md:text-lg text-[--ink] mb-3">
+          <h2 className="text-base md:text-lg text-ink mb-3">
             7. Children&apos;s Privacy
           </h2>
           <p>
@@ -135,7 +135,7 @@ export default async function Page() {
         </section>
 
         <section className="mb-8">
-          <h2 className="text-base md:text-lg text-[--ink] mb-3">
+          <h2 className="text-base md:text-lg text-ink mb-3">
             8. Changes to This Privacy Policy
           </h2>
           <p>
@@ -147,7 +147,7 @@ export default async function Page() {
         </section>
 
         <section>
-          <h2 className="text-base md:text-lg text-[--ink] mb-3">
+          <h2 className="text-base md:text-lg text-ink mb-3">
             9. Contact Us
           </h2>
           <p>
@@ -156,7 +156,7 @@ export default async function Page() {
             <br />
             <a
               href="mailto:hello.yuanjia@gmail.com"
-              className="text-[--accent] hover:underline underline-offset-4"
+              className="text-accent hover:underline underline-offset-4"
             >
               hello.yuanjia@gmail.com
             </a>

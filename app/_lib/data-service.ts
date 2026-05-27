@@ -46,9 +46,10 @@ export async function getResumeData(): Promise<Resume | null> {
   return (await getSite()).resume;
 }
 
-const FLICKR_API_BASE = "https://www.flickr.com/services/rest";
-const FLICKR_PHOTOSET_ID = "72177720317181217";
-const FLICKR_USER_ID = "186722781@N08";
+import { FLICKR_ALBUM_ID, FLICKR_USER_ID } from "@/app/_lib/flickr-config";
+
+const FLICKR_API_BASE    = "https://www.flickr.com/services/rest";
+const FLICKR_PHOTOSET_ID = FLICKR_ALBUM_ID;
 
 export type FlickrAlbum = {
   photos: FlickrPhoto[];

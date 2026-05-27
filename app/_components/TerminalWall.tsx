@@ -93,9 +93,10 @@ interface CmdCtx {
 const DEFAULT_BIO =
   "Master's student in CS at UCSC, graduating 2026. I build platform infrastructure — CI/CD pipelines, deploy automation, self-hosted k3s clusters. Currently at [Flyer](https://joinflyer.com). Based in Santa Clara, looking for what's next.";
 
-const ALBUM_ID = "72177720317181217";
+import { FLICKR_ALBUM_ID } from "@/app/_lib/flickr-config";
+
 const ALBUM_NAME = "Some Random Shots";
-const FLICKR_ALBUM_URL = `https://www.flickr.com/photos/yuan-jia/albums/${ALBUM_ID}`;
+const FLICKR_ALBUM_URL = `https://www.flickr.com/photos/yuan-jia/albums/${FLICKR_ALBUM_ID}`;
 
 // The four commands that type out on load. Stored as plain strings so the
 // typing hook can read their lengths without re-running on every render.

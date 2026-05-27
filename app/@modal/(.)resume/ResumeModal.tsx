@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import type { Resume } from "@/app/resume/data";
-import "../../_components/polaroid-wall.css";
+import "../../_components/resume.css";
 
 export default function ResumeModal({ resume }: { resume: Resume }) {
   const router = useRouter();

@@ -5,7 +5,7 @@ import ResumeModal from "./ResumeModal";
 
 // Loaded here (not in the root layout) so anonymous visitors don't download
 // the resume-only typefaces unless they open the modal. The variables are
-// scoped to the wrapper div, which is enough for polaroid-wall.css to pick
+// scoped to the wrapper div, which is enough for resume.css to pick
 // them up via var(--font-serif) / var(--font-hand).
 const newsreader = Newsreader({
   subsets: ["latin"],

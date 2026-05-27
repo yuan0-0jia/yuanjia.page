@@ -3,7 +3,7 @@ import { getResumeData } from "@/app/_lib/data-service";
 import { RESUME, type Resume } from "./data";
 import ResumeScreen from "./_components/ResumeScreen";
 import ResumePrint from "./_components/ResumePrint";
-import "./resume.css";
+import "@/app/_components/resume.css";
 
 export const metadata: Metadata = {
   title: "Resume",

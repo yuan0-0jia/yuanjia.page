@@ -1,0 +1,2 @@
+export const FLICKR_ALBUM_ID = "72177720317181217";
+export const FLICKR_USER_ID  = "186722781@N08";
