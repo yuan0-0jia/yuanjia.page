@@ -204,17 +204,17 @@ body:has(.resume-screen) { padding-bottom: 0; }
      --pp-indent is the bullet hanging-indent value: also the width
      reserved for the ✦ marker before the bullet text. */
   --pp-gap-xs: 1.5pt;
-  --pp-gap-sm: 3pt;
-  --pp-gap-md: 6pt;
-  --pp-gap-lg: 10pt;
-  --pp-gap-xl: 11pt;
+  --pp-gap-sm: 2.5pt;
+  --pp-gap-md: 5pt;
+  --pp-gap-lg: 8pt;
+  --pp-gap-xl: 9pt;
   --pp-indent: 11pt;
 
   color: var(--pp-ink);
   background: white;
   font-family: var(--font-sans, "Instrument Sans", ui-sans-serif, sans-serif);
   font-size: 9pt;
-  line-height: 1.4;
+  line-height: 1.35;
   /* No max-width / margin auto — the @page rule above sets uniform
      margins on all four sides; the content fills that area edge to
      edge so left and right print margins are guaranteed symmetric. */
@@ -258,7 +258,7 @@ body:has(.resume-screen) { padding-bottom: 0; }
 }
 .resume-print .resume-body {
   font-size: 9pt;
-  line-height: 1.4;
+  line-height: 1.35;
 }
 .resume-print .resume-emphasis {
   font-size: 9.5pt;
@@ -272,7 +272,7 @@ body:has(.resume-screen) { padding-bottom: 0; }
   align-items: flex-end;
   gap: 18pt;
   margin-bottom: var(--pp-gap-xl);
-  padding-bottom: 7pt;
+  padding-bottom: 6pt;
   border-bottom: 0.5pt solid var(--pp-ink);
 }
 
