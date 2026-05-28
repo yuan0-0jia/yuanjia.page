@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
-import { Instrument_Sans, JetBrains_Mono } from "next/font/google";
+import { Instrument_Sans, JetBrains_Mono, Newsreader, Kalam } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import Link from "next/link";
 import AuthProvider from "./_components/AuthProvider";
@@ -20,6 +20,25 @@ const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
   weight: ["400", "500"],
   variable: "--font-mono",
+  display: "swap",
+});
+
+// Serif (display name on /resume + print) and hand (design-system accent).
+// Defined site-wide so the --font-serif / --font-hand vars in globals.css
+// resolve everywhere they're referenced (previously --font-serif was only
+// scoped to the /resume subtree and --font-hand was never loaded at all).
+const newsreader = Newsreader({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  style: ["normal", "italic"],
+  variable: "--font-serif",
+  display: "swap",
+});
+
+const kalam = Kalam({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  variable: "--font-hand",
   display: "swap",
 });
 
@@ -55,7 +74,7 @@ export default function RootLayout({
       lang="en"
       suppressHydrationWarning
       data-scroll-behavior="smooth"
-      className={`${instrumentSans.variable} ${jetbrainsMono.variable}`}
+      className={`${instrumentSans.variable} ${jetbrainsMono.variable} ${newsreader.variable} ${kalam.variable}`}
     >
       <head>
         <link
