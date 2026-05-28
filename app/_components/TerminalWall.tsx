@@ -35,6 +35,19 @@ const LessPager = dynamic(() => import("./LessPager"), {
   loading: () => null,
 });
 
+// Seed for the ~/resume.md editor + `less` pager when the DB has no resume yet.
+// Prod always has one; this is just the empty-DB / first-run starter.
+const EMPTY_RESUME_MD = `---
+name: Yuan Jia
+---
+
+## Experience
+
+## Skills
+
+## Education
+`;
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface FlickrPhoto {
@@ -1330,21 +1343,11 @@ export default function TerminalWall({ photos, albumTotal, bio, avatar, resumeMd
         });
         window.scrollTo({ top: 0 });
       },
-      openResumeEditor: async () => {
-        // Seed priority: 1) markdown from DB, 2) convert the static RESUME.
-        let initialMd: string;
-        if (resumeMd) {
-          initialMd = resumeMd;
-        } else {
-          const [{ resumeToMd }, mod] = await Promise.all([
-            import("../resume/parse-md"),
-            import("../resume/data"),
-          ]);
-          initialMd = resumeToMd(mod.RESUME);
-        }
+      openResumeEditor: () => {
+        // Seed from the DB markdown, or a minimal template on first run.
         setNanoFile({
           name: "~/resume.md",
-          initial: initialMd,
+          initial: resumeMd ?? EMPTY_RESUME_MD,
           save: async (t) => {
             await updateResumeMd(t);
           },
@@ -1355,19 +1358,8 @@ export default function TerminalWall({ photos, albumTotal, bio, avatar, resumeMd
       composeEmail: () => {
         window.location.href = "mailto:hello.yuanjia@gmail.com";
       },
-      openResume: async () => {
-        // Seed priority: 1) markdown from DB, 2) convert the static RESUME.
-        let md: string;
-        if (resumeMd) {
-          md = resumeMd;
-        } else {
-          const [{ resumeToMd }, mod] = await Promise.all([
-            import("../resume/parse-md"),
-            import("../resume/data"),
-          ]);
-          md = resumeToMd(mod.RESUME);
-        }
-        setLessMarkdown(md);
+      openResume: () => {
+        setLessMarkdown(resumeMd ?? EMPTY_RESUME_MD);
         window.scrollTo({ top: 0 });
       },
       setTheme: (t) => setSiteTheme(t),

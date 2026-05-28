@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getResumeData } from "@/app/_lib/data-service";
-import { RESUME, type Resume } from "./data";
+import { notFound } from "next/navigation";
+import type { Resume } from "./data";
 import ResumeScreen from "./_components/ResumeScreen";
 import ResumePrint from "./_components/ResumePrint";
 import "@/app/_components/resume.css";
@@ -26,8 +27,8 @@ export const metadata: Metadata = {
 };
 
 export default async function Page() {
-  const fromDb = await getResumeData();
-  const resume = fromDb ?? RESUME;
+  const resume = await getResumeData();
+  if (!resume) notFound();
 
   return (
     <>

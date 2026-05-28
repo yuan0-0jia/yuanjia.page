@@ -1,6 +1,5 @@
 import { ImageResponse } from "next/og";
 import { getResumeData } from "@/app/_lib/data-service";
-import { RESUME } from "./data";
 
 export const runtime = "nodejs";
 export const alt = "Resume — Yuan Jia";
@@ -8,8 +7,12 @@ export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
 export default async function Image() {
-  const fromDb = await getResumeData();
-  const resume = fromDb ?? RESUME;
+  // Falls back to a minimal branded card if the DB has no resume yet, so the
+  // social image never breaks even without resume content.
+  const resume = await getResumeData();
+  const name = resume?.name ?? "Yuan Jia";
+  const tagline = resume?.tagline;
+  const location = resume?.location;
 
   return new ImageResponse(
     (
@@ -65,7 +68,7 @@ export default async function Image() {
               marginBottom: 20,
             }}
           >
-            {resume.name}
+            {name}
           </div>
 
           {/* Divider */}
@@ -79,7 +82,7 @@ export default async function Image() {
           />
 
           {/* Tagline */}
-          {resume.tagline && (
+          {tagline && (
             <div
               style={{
                 fontSize: 28,
@@ -88,12 +91,12 @@ export default async function Image() {
                 fontStyle: "italic",
               }}
             >
-              {resume.tagline}
+              {tagline}
             </div>
           )}
 
           {/* Location */}
-          {resume.location && (
+          {location && (
             <div
               style={{
                 fontSize: 18,
@@ -102,7 +105,7 @@ export default async function Image() {
                 marginTop: 16,
               }}
             >
-              {resume.location}
+              {location}
             </div>
           )}
         </div>

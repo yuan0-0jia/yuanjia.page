@@ -13,8 +13,8 @@ export type Site = {
  * Read the site's singleton content row (id=1) — bio, resume markdown,
  * avatar, and the owner's most recent login/logout timestamps in one
  * query. Falls back to nulls when the row or table is missing, so
- * callers use their static defaults (DEFAULT_BIO, RESUME, no avatar,
- * no login record).
+ * callers handle the empty case (DEFAULT_BIO for bio, notFound for the
+ * resume, no avatar, no login record).
  */
 export async function getSite(): Promise<Site> {
   const supabase = await createClient();
@@ -47,9 +47,9 @@ export async function getSite(): Promise<Site> {
   };
 }
 
-/** The resume (or null → caller falls back to the static RESUME).
- *  Parses the markdown column; the legacy `resume` jsonb column was
- *  dropped now that the markdown editor is the sole write surface. */
+/** The resume parsed from the markdown column, or null when unset (callers
+ *  render notFound / a minimal fallback). The legacy `resume` jsonb column
+ *  was dropped; the markdown editor is the sole write surface. */
 export async function getResumeData(): Promise<Resume | null> {
   const site = await getSite();
   if (!site.resumeMd) return null;
