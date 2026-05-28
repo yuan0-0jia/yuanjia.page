@@ -1,10 +1,8 @@
 import { createClient } from "@/utils/supabase/server";
 import type { Resume } from "@/app/resume/data";
-import { normalizeResume } from "@/app/resume/data";
 
 export type Site = {
   bio: string | null;
-  resume: Resume | null;
   resumeMd: string | null;
   avatar: string | null;
   lastLogin: string | null;
@@ -12,39 +10,19 @@ export type Site = {
 };
 
 /**
- * Read the site's singleton content row (id=1) — bio, resume, avatar, and the
- * owner's most recent login/logout timestamps in one query. Falls back to
- * nulls when the row or table is missing, so callers use their static
- * defaults (DEFAULT_BIO, RESUME, no avatar, no login record).
+ * Read the site's singleton content row (id=1) — bio, resume markdown,
+ * avatar, and the owner's most recent login/logout timestamps in one
+ * query. Falls back to nulls when the row or table is missing, so
+ * callers use their static defaults (DEFAULT_BIO, RESUME, no avatar,
+ * no login record).
  */
 export async function getSite(): Promise<Site> {
   const supabase = await createClient();
-  let data: Record<string, unknown> | null = null;
-  let error: { code?: string; message?: string; details?: string; hint?: string } | null = null;
-  ({ data, error } = await supabase
+  const { data, error } = await supabase
     .from("site")
-    .select("bio, resume, resume_md, avatar, last_login, last_logout")
+    .select("bio, resume_md, avatar, last_login, last_logout")
     .eq("id", 1)
-    .single());
-
-  // If `resume_md` column doesn't exist yet (migration not run), retry without it
-  // so the rest of the page keeps working. PostgREST returns 42703 for unknown
-  // columns (sometimes surfaced as PGRST204 depending on version).
-  if (
-    error &&
-    (error.code === "42703" ||
-      error.code === "PGRST204" ||
-      /resume_md/i.test(error.message ?? ""))
-  ) {
-    console.warn(
-      "[site] resume_md column missing — run: alter table site add column resume_md text;",
-    );
-    ({ data, error } = await supabase
-      .from("site")
-      .select("bio, resume, avatar, last_login, last_logout")
-      .eq("id", 1)
-      .single());
-  }
+    .single();
 
   if (error) {
     // PGRST116 = no row yet; PGRST205 = table not created — both expected pre-setup.
@@ -57,12 +35,11 @@ export async function getSite(): Promise<Site> {
         hint: error.hint,
       });
     }
-    return { bio: null, resume: null, resumeMd: null, avatar: null, lastLogin: null, lastLogout: null };
+    return { bio: null, resumeMd: null, avatar: null, lastLogin: null, lastLogout: null };
   }
 
   return {
     bio: (data?.bio as string | null) ?? null,
-    resume: data?.resume ? normalizeResume(data.resume as Resume) : null,
     resumeMd: (data?.resume_md as string | null) ?? null,
     avatar: (data?.avatar as string | null) ?? null,
     lastLogin: (data?.last_login as string | null) ?? null,
@@ -71,14 +48,13 @@ export async function getSite(): Promise<Site> {
 }
 
 /** The resume (or null → caller falls back to the static RESUME).
- *  Prefers the markdown column when it exists; falls back to the legacy JSON. */
+ *  Parses the markdown column; the legacy `resume` jsonb column was
+ *  dropped now that the markdown editor is the sole write surface. */
 export async function getResumeData(): Promise<Resume | null> {
   const site = await getSite();
-  if (site.resumeMd) {
-    const { parseMd } = await import("../resume/parse-md");
-    return parseMd(site.resumeMd);
-  }
-  return site.resume;
+  if (!site.resumeMd) return null;
+  const { parseMd } = await import("../resume/parse-md");
+  return parseMd(site.resumeMd);
 }
 
 import { FLICKR_ALBUM_ID, FLICKR_USER_ID } from "@/app/_lib/flickr-config";

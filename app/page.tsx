@@ -15,7 +15,6 @@ export default async function Home() {
       albumTotal={album.total}
       bio={site.bio}
       avatar={site.avatar}
-      resume={site.resume}
       resumeMd={site.resumeMd}
       lastLogin={site.lastLogin}
       lastLogout={site.lastLogout}

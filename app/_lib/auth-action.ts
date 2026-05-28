@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { createClient as createTokenClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
-import { normalizeResume, type Resume } from "@/app/resume/data";
 import { OWNER_ID } from "./owner";
 
 export async function login() {
@@ -178,42 +177,6 @@ export async function updateResumeMd(md: string) {
   if (!updated || updated.length === 0) {
     throw new Error(
       "Resume save matched 0 rows — your auth session may not have write permission.",
-    );
-  }
-
-  revalidatePath("/resume");
-}
-
-export async function updateResumeData(resume: Resume) {
-  const { data, error } = await getUser();
-  if (error || !data?.user) throw new Error("You must be logged in");
-
-  const supabase = await createClient();
-
-  // .select() asks for the updated rows back so we can see if RLS silently
-  // filtered the write. Without this the call returns success even when 0
-  // rows were actually changed.
-  // Normalize before persisting so a hand-edited JSON buffer can't write an
-  // invalid shape (it's only sanitized on read otherwise — round-tripping
-  // would silently drop/mutate data).
-  const { data: updated, error: updateError } = await supabase
-    .from("site")
-    .update({ resume: normalizeResume(resume) })
-    .eq("id", 1)
-    .select();
-
-  if (updateError) {
-    console.error("[resume] update error:", updateError);
-    throw new Error(`Resume could not be updated: ${updateError.message}`);
-  }
-
-  if (!updated || updated.length === 0) {
-    console.error(
-      "[resume] UPDATE affected 0 rows — RLS rejected the write or the site row is missing. Authenticated user:",
-      data.user.email
-    );
-    throw new Error(
-      "Resume save matched 0 rows — your auth session may not have write permission. Check RLS policies and that you're logged in to the correct Supabase project."
     );
   }
 

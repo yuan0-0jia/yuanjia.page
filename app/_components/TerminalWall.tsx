@@ -17,7 +17,6 @@ import { renderBio } from "../_lib/render-bio";
 import { useDock } from "./DockProvider";
 import { useAuth } from "./AuthProvider";
 import { login, logout, updateBio, updateResumeMd } from "../_lib/auth-action";
-import type { Resume } from "../resume/data";
 import type { NanoFile } from "./NanoEditor";
 
 // Owner-only UI: lazy-loaded, never shipped to anonymous visitors.
@@ -53,7 +52,6 @@ interface TerminalWallProps {
   albumTotal: number;
   bio: string | null;
   avatar: string | null;
-  resume: Resume | null;
   resumeMd: string | null;
   lastLogin: string | null;
   lastLogout: string | null;
@@ -1138,7 +1136,7 @@ function Prompt({
 
 // ─── Main component ──────────────────────────────────────────────────────────
 
-export default function TerminalWall({ photos, albumTotal, bio, avatar, resume, resumeMd, lastLogin, lastLogout }: TerminalWallProps) {
+export default function TerminalWall({ photos, albumTotal, bio, avatar, resumeMd, lastLogin, lastLogout }: TerminalWallProps) {
   const { resolvedTheme, setTheme: setSiteTheme } = useTheme();
   const { isAuthenticated } = useAuth();
 
@@ -1333,18 +1331,16 @@ export default function TerminalWall({ photos, albumTotal, bio, avatar, resume, 
         window.scrollTo({ top: 0 });
       },
       openResumeEditor: async () => {
-        // Seed priority: 1) markdown from DB, 2) convert JSON from DB, 3) convert static RESUME.
+        // Seed priority: 1) markdown from DB, 2) convert the static RESUME.
         let initialMd: string;
         if (resumeMd) {
           initialMd = resumeMd;
         } else {
-          const { resumeToMd } = await import("../resume/parse-md");
-          if (resume) {
-            initialMd = resumeToMd(resume);
-          } else {
-            const mod = await import("../resume/data");
-            initialMd = resumeToMd(mod.RESUME);
-          }
+          const [{ resumeToMd }, mod] = await Promise.all([
+            import("../resume/parse-md"),
+            import("../resume/data"),
+          ]);
+          initialMd = resumeToMd(mod.RESUME);
         }
         setNanoFile({
           name: "~/resume.md",
@@ -1360,18 +1356,16 @@ export default function TerminalWall({ photos, albumTotal, bio, avatar, resume, 
         window.location.href = "mailto:hello.yuanjia@gmail.com";
       },
       openResume: async () => {
-        // Seed priority: 1) markdown from DB, 2) convert JSON from DB, 3) convert static RESUME.
+        // Seed priority: 1) markdown from DB, 2) convert the static RESUME.
         let md: string;
         if (resumeMd) {
           md = resumeMd;
         } else {
-          const { resumeToMd } = await import("../resume/parse-md");
-          if (resume) {
-            md = resumeToMd(resume);
-          } else {
-            const mod = await import("../resume/data");
-            md = resumeToMd(mod.RESUME);
-          }
+          const [{ resumeToMd }, mod] = await Promise.all([
+            import("../resume/parse-md"),
+            import("../resume/data"),
+          ]);
+          md = resumeToMd(mod.RESUME);
         }
         setLessMarkdown(md);
         window.scrollTo({ top: 0 });
@@ -1390,7 +1384,7 @@ export default function TerminalWall({ photos, albumTotal, bio, avatar, resume, 
       lastLogout,
       sessionStartMs: sessionStartMsRef.current,
     }),
-    [photos, albumTotal, cols, bioText, avatar, resume, resumeMd, isAuthenticated, setSiteTheme, restartSession, history, lastLogin, lastLogout]
+    [photos, albumTotal, cols, bioText, avatar, resumeMd, isAuthenticated, setSiteTheme, restartSession, history, lastLogin, lastLogout]
   );
 
   const submitCommand = useCallback(
