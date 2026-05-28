@@ -41,10 +41,6 @@ export const KEY_TO_LABEL: Record<string, string> = {
   mastodon: "Mastodon",
 };
 
-export const LABEL_TO_KEY: Record<string, string> = Object.fromEntries(
-  Object.entries(KEY_TO_LABEL).map(([k, v]) => [v.toLowerCase(), k]),
-);
-
 const RESERVED_KEYS = new Set([
   "name",
   "tagline",

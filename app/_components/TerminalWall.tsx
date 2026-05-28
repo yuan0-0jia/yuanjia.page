@@ -111,9 +111,6 @@ interface CmdCtx {
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const DEFAULT_BIO =
-  "Master's student in CS at UCSC, graduating 2026. I build platform infrastructure — CI/CD pipelines, deploy automation, self-hosted k3s clusters. Currently at [Flyer](https://joinflyer.com). Based in Santa Clara, looking for what's next.";
-
 import { FLICKR_ALBUM_ID } from "@/app/_lib/flickr-config";
 
 const ALBUM_NAME = "Some Random Shots";
@@ -1162,7 +1159,7 @@ export default function TerminalWall({ photos, albumTotal, bio, avatar, resumeMd
   const displayPhotos = useMemo(() => shuffle(photos).slice(0, PHOTO_LIMIT), [photos, PHOTO_LIMIT]);
   // Bio is stateful so the inline `nano about.md` editor can reflect a save
   // without a full reload.
-  const [bioText, setBioText] = useState(bio ?? DEFAULT_BIO);
+  const [bioText, setBioText] = useState(bio ?? "");
   // The file open in the inline nano editor (about.md or resume.md), or null
   // when not editing. Auth-gated via the nano command.
   const [nanoFile, setNanoFile] = useState<NanoFile | null>(null);

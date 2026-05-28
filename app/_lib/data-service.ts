@@ -13,8 +13,8 @@ export type Site = {
  * Read the site's singleton content row (id=1) — bio, resume markdown,
  * avatar, and the owner's most recent login/logout timestamps in one
  * query. Falls back to nulls when the row or table is missing, so
- * callers handle the empty case (DEFAULT_BIO for bio, notFound for the
- * resume, no avatar, no login record).
+ * callers handle the empty case (empty bio, notFound for the resume,
+ * no avatar, no login record).
  */
 export async function getSite(): Promise<Site> {
   const supabase = await createClient();
