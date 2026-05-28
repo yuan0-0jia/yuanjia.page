@@ -265,13 +265,13 @@ export const RESUME: Resume = {
         "Claude Code / Copilot CLI",
       ],
       summary:
-        "Production event platform built ground-up by a 5-person team driving AI coding agents (~70k LOC). Engineered the guardrails — deploy pipeline, security, disaster recovery — that make agent-driven shipping safe.",
+        "Production event platform built ground-up by a 5-person team driving AI coding agents (~77k LOC). Engineered the guardrails — deploy pipeline, security, disaster recovery — that make agent-driven shipping safe.",
       bullets: [
         "**Designed a multi-mode GitHub Actions deploy workflow** with post-deploy health probes and auto-rollback from a deploy-history ledger — a bad agent-authored deploy reverts itself in under two minutes.",
         "**Built a deploy state machine in Bash** with remote locking, drift detection, and a CI-gating layer that blocks promotion until tests for the exact deploy commit pass — two prod-mutating ops can't interleave even when multiple agent sessions race the same branch.",
         "**Locked down the CI deploy key** with a forced-command wrapper, strict argument allowlist, and audited invocations — a leaked key (or a misbehaving agent) can't open an interactive shell.",
-        "**Hardened the stack end-to-end** — daily encrypted Postgres → S3 backups (verified via live restore), migrated off a DB superuser to a least-privilege role, closed a PII leak in proxy logs, and SHA-pinned third-party actions with shell linting + bats coverage on every infra script.",
-        "**Migrated all CI + deploy jobs onto self-hosted runner pools** behind a Tailscale mesh — ephemeral pods per job, zero idle compute; CI rode through a hosted-runner billing outage that would've blocked any cloud-runner job.",
+        "**Hardened the stack end-to-end** — daily encrypted Postgres → S3 backups (restore-tested via a scratch-container drill), migrated off a DB superuser to a least-privilege role, closed a PII leak in proxy logs, and SHA-pinned third-party actions with shell linting + bats coverage on every infra script.",
+        "**Migrated all CI + deploy jobs onto a self-hosted k3s runner cluster** (Actions Runner Controller, ephemeral pod per job) — CI rode through a hosted-runner billing outage that would've blocked any cloud-runner job.",
       ],
     },
     {
@@ -282,15 +282,14 @@ export const RESUME: Resume = {
         "k3s",
         "Actions Runner Controller",
         "GitHub Actions",
-        "Tailscale",
         "Ubuntu 24.04",
         "Lima (Apple Silicon arm64 VM)",
       ],
       summary:
         "Mixed-arch k3s cluster on repurposed Intel + Apple Silicon hardware; hosts ephemeral GitHub Actions runner pools that keep Flyer's agent-built CI cheap, fast, and outage-resilient.",
       bullets: [
-        "**Built a mixed-arch k3s cluster on repurposed Intel + Apple Silicon hardware** running Actions Runner Controller — each CI job spawns an ephemeral pod (clean filesystem, zero idle compute).",
-        "**Cut Flyer CI wall-clock by ~75% end-to-end** with a custom multi-arch runner image, in-cluster caches replacing hosted artifact caches, and an arm64-native pool that skips QEMU emulation for build + heavy test jobs.",
+        "**Built a 3-node mixed-arch k3s cluster on repurposed Intel + Apple Silicon hardware** running Actions Runner Controller — each CI job spawns an ephemeral pod (clean filesystem; runner pools scale to zero when idle).",
+        "**Cut Flyer CI wall-clock ~42% end-to-end (13m35s → 7m50s)** with a custom multi-arch runner image, node-local npm/Playwright caches that replaced WAN-bound hosted caches, and an arm64-native pool that skips QEMU emulation for build + heavy test jobs.",
       ],
     },
     {
@@ -304,6 +303,7 @@ export const RESUME: Resume = {
         "Python",
         "tree-sitter",
         "pytest",
+        "matplotlib",
         "Claude Code",
         "Codex CLI",
         "Gemini CLI",
@@ -311,10 +311,10 @@ export const RESUME: Resume = {
         "ruff",
       ],
       summary:
-        "Empirical study of whether code style affects AI coding-agent bug-fix performance — a head-to-head benchmark of Claude Code, Codex CLI, and Gemini CLI under controlled stylistic variants.",
+        "Empirical study of whether source-code style affects AI coding-agent bug-fix performance — a 1,920-trial benchmark on Claude Code under six controlled stylistic variants, run on a pluggable harness built for Claude Code, Codex CLI, and Gemini CLI.",
       bullets: [
-        "**Ran a ~2,000-trial benchmark** of Claude Code / Codex CLI / Gemini CLI on real-world bug-fix tasks across 4 Python projects (~20k LOC, 3,000+ tests), 6 stylistic variants, and 14 mutation types.",
-        "**Built a tree-sitter AST transformation framework** + a multi-agent harness with pluggable CLI adapters — checkpoint-resume on rate limits, deterministic manifest mode for byte-identical inputs, and process-group cleanup on timeout.",
+        "**Ran a 1,920-trial bug-fix benchmark on Claude Code (Haiku 4.5)** across 4 real-world Python projects (~20k LOC, 3,000+ tests), 6 stylistic variants, and 14 mutation types — plus an 80-trial Codex CLI pilot.",
+        "**Built a tree-sitter AST transformation framework** + a multi-agent harness with pluggable CLI adapters (Claude Code, Codex CLI, Gemini CLI) — checkpoint-resume on rate limits, deterministic manifest mode for byte-identical inputs, and process-group cleanup on timeout.",
         "**Code style had no statistically significant effect on agent fix rate** (p ≈ 1.0, ~1pp spread); repository difficulty and mutation type dominated by ~30pp each.",
       ],
     },
