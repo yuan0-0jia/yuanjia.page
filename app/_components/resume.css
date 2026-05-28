@@ -1,7 +1,7 @@
 
-/* Resume styles — screen sidebar layout + print rules for /resume.
-   (The intercepted modal route was removed in favor of the in-terminal
-   less ~/resume.md pager.) */
+/* Resume styles — screen sidebar layout (used by ResumeScreen on /resume)
+   plus print rules + the canonical print layout (used by ResumePrint
+   when the resume is sent to the browser print dialog). */
 
 /* ================================================================== */
 /* SCREEN SIDEBAR LAYOUT (used by ResumeScreen)                       */
@@ -95,15 +95,8 @@ body:has(.resume-screen) { padding-bottom: 0; }
   }
 }
 
-/* Print path (anyone printing /resume directly) — collapse to single
-   column. The dedicated ResumePrint component is the canonical print
-   target, but this keeps a stray print of the screen view sane too. */
-@media print {
-  .resume-grid { display: block; }
-}
-
 /* ================================================================== */
-/* PRINT LAYOUT (used by /resume page — print media + on-screen preview) */
+/* PRINT LAYOUT (used by /resume page in @media print)                */
 /* ================================================================== */
 
 /* Letter-sized page rules for the browser's print dialog.
@@ -114,6 +107,12 @@ body:has(.resume-screen) { padding-bottom: 0; }
    need to uncheck "Print headers and footers" in their print dialog. */
 @page {
   size: letter;
+  /* Uniform margin owned entirely by @page — `.resume-print` deliberately
+     does NOT set `max-width` + `margin: 0 auto`, so there's no auto-
+     centering math that could introduce sub-pixel left/right asymmetry
+     between browsers' print engines. 0.35in keeps the effective content
+     width at 7.8in (matching the prior layout's wrap points) while
+     giving all four edges the same visual margin. */
   margin: 0.35in;
 
   @top-left-corner    { content: ""; }
@@ -128,78 +127,23 @@ body:has(.resume-screen) { padding-bottom: 0; }
   @bottom-right-corner{ content: ""; }
 }
 
-/* Screen-only: hide the print-only layout UNLESS it's inside a
-   preview wrapper (the editor's Preview / Print tab uses this to
-   render the print layout on screen). */
+/* Screen-only: hide the print-only layout. */
 @media screen {
   .resume-print { display: none; }
-  .resume-print-preview .resume-print { display: block; }
 }
 
-/* Print-layout preview — visualizes pagination as a stack of
-   page-shaped frames with visible gaps between them. Content flows
-   continuously across the frames. Where content lands relative to a
-   frame's edge is where the printer's page break will fall. */
-.resume-print-preview {
-  position: relative;
-  width: 8.5in;
-  margin: 1.5rem auto 4rem;
-}
-
-/* Each page frame is a positioned background — a sheet of white paper
-   with a drop shadow. Width is the wrapper's 8.5in and height is
-   exactly 11in, locking the aspect ratio to Letter. aspect-ratio is
-   added as a sanity assertion in case any ancestor stretches us. */
-.resume-print-preview__page-frame {
-  position: absolute;
-  left: 0;
-  right: 0;
-  width: 8.5in;
-  height: 11in;
-  aspect-ratio: 8.5 / 11;
-  background: white;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.18);
-}
-
-/* Content sits above the frames in the z-stack and flows continuously
-   through them. The padding mirrors the print margins so text
-   placement on screen matches the printed PDF. */
-.resume-print-preview__content {
-  position: relative;
-  z-index: 1;
-  padding: 0.35in;
-}
-
-/* Hide summaries in the preview to match the printed PDF (which also
-   hides them via @media print). */
-.resume-print-preview__content .resume-print__summary {
-  display: none;
-}
-
-/* .resume-print paints a solid white background — correct for real
-   paper under @media print. In the preview the page-frames already
-   supply the white sheets, so the content must stay transparent;
-   otherwise its background bridges the inter-page gap and the two
-   sheets look joined by a white block. */
-.resume-print-preview .resume-print {
-  background: transparent;
-}
-
-/* Print-only: hide site chrome and the rich screen layout */
+/* ── Print-only behaviour: hide site chrome, normalize background,
+      suppress summaries, and pin section heads to their content. ── */
 @media print {
   html,
   body {
     background: white !important;
-    color: black !important;
-  }
-
-  /* Hide site header / footer (rendered as <header>/<footer> in the
-     root layout) without hiding nested <header>/<footer> inside the
-     print resume itself. */
-  body > header,
-  body > footer {
-    display: none !important;
+    /* Reset body's pb-16 / sm:pb-20 Tailwind padding + any inherited
+       margin so the @page rule above is the only contributor to the
+       sheet's outer whitespace. Without this, the body's bottom
+       padding adds an extra inch under the resume on long pages. */
+    margin: 0 !important;
+    padding: 0 !important;
   }
 
   /* Hide the on-brand screen layout (and its print button) */
@@ -207,85 +151,212 @@ body:has(.resume-screen) { padding-bottom: 0; }
     display: none !important;
   }
 
-  /* Keep links black with no underline (recruiter PDFs read cleaner) */
-  .resume-print a {
-    color: black !important;
-    text-decoration: none !important;
+  /* Summary is a screen-only "pull quote." In print we drop it to
+     preserve one-page fit — the bullets carry the substance. */
+  .resume-print__summary {
+    display: none;
   }
 
-  /* Only keep short, atomic blocks together (education entries). Bullets
-     are allowed to split across pages so the page-breaker can fill the
-     bottom of the first page instead of pushing a 2-line bullet down
-     and leaving white space behind. */
+  /* Keep short atomic blocks together (education entries, single
+     projects). Bullets are still allowed to split across pages so the
+     page-breaker can fill the bottom of the first page rather than
+     pushing a partial bullet down and leaving white space behind. */
   .resume-print__edu {
     page-break-inside: avoid;
   }
 
-  /* Don't strand a section/project heading at the bottom of a page */
+  /* Don't strand a section/entry heading at the bottom of a page.
+     `break-after: avoid` is the modern spelling and is honored by
+     Chromium where the legacy `page-break-after` is unreliable. */
   .resume-print__section-title,
-  .resume-print__project > .resume-print__line {
+  .resume-print__entry-head {
     page-break-after: avoid;
+    break-after: avoid;
   }
 }
 
-/* Print uses Georgia throughout — universally available, ATS-safe, and
-   reads as a conventional professional resume. The screen view's
-   distinctive typography is intentionally NOT mirrored here so the
-   downloaded PDF lands as a recruiter would expect. */
+/* ── Base sheet ──────────────────────────────────────────────────────
+   .resume-print owns the layout + the pt-sized type scale. Colors are
+   hardcoded (not theme variables) so the printed PDF looks identical
+   whether the user prints from light or dark mode. The only --*
+   variable in play is --accent, which is intentionally the same value
+   in both themes (#c83a2c). */
 .resume-print {
-  font-family: Georgia, "Iowan Old Style", "Times New Roman", serif;
-  color: #111;
+  /* Ink / soft hardcoded so dark-mode visitors don't print cream-on-
+     white. Accent stays as the variable since it's theme-stable. */
+  --pp-ink:  #1f1c17;
+  --pp-soft: #4a4337;
+  --pp-rule: rgba(0, 0, 0, 0.18);
+
+  /* ── Spacing scale ─────────────────────────────────────────────────
+     Every print spacing value pulls from these tokens, so future
+     density tweaks (e.g., to fit one more project on the page) become
+     a single-variable change rather than a hunt through every rule.
+     The scale roughly doubles each step — small for in-block rhythm,
+     large for top-level section breaks.
+
+       --pp-gap-xs   tightest, between bullet lines
+       --pp-gap-sm   intra-section rows (edu list, skill rows)
+       --pp-gap-md   between projects inside Experience
+       --pp-gap-lg   between top-level sections (with divider)
+       --pp-gap-xl   header rule → first section heading
+
+     --pp-indent is the bullet hanging-indent value: also the width
+     reserved for the ✦ marker before the bullet text. */
+  --pp-gap-xs: 1.5pt;
+  --pp-gap-sm: 3pt;
+  --pp-gap-md: 6pt;
+  --pp-gap-lg: 10pt;
+  --pp-gap-xl: 11pt;
+  --pp-indent: 11pt;
+
+  color: var(--pp-ink);
   background: white;
+  font-family: var(--font-sans, "Instrument Sans", ui-sans-serif, sans-serif);
+  font-size: 9pt;
+  line-height: 1.4;
+  /* No max-width / margin auto — the @page rule above sets uniform
+     margins on all four sides; the content fills that area edge to
+     edge so left and right print margins are guaranteed symmetric. */
+  margin: 0;
+
+  /* Disable OpenType ligatures so the printed PDF's text layer extracts
+     as ASCII for ATS parsers. Without this, Instrument Sans's `fi`/`fl`/
+     `ffi` glyphs copy out as the wrong characters ("workflow" reads as
+     "work!ow", "verified" reads as "veri"ed", "difficulty" reads as
+     "di#culty"). Visually identical with or without — only the text
+     extraction differs. */
+  font-variant-ligatures: none;
+  font-feature-settings: "liga" 0, "clig" 0, "dlig" 0;
+}
+
+/* ── Print type scale ───────────────────────────────────────────────
+   Re-frame the shared .resume-* classes from globals.css at pt sizes.
+   font-family / font-style / font-weight / letter-spacing / text-
+   transform all stay inherited from the source class, so any future
+   typographic tweak in globals.css ripples through the printed PDF
+   alongside the screen and the terminal pager. */
+.resume-print .resume-display {
+  font-size: 22pt;
+  line-height: 1.0;
+}
+.resume-print .resume-eyebrow {
+  font-size: 7.5pt;
+  line-height: 1.2;
+}
+.resume-print .resume-kicker {
+  font-size: 10pt;
+  line-height: 1.2;
+}
+.resume-print .resume-meta {
+  font-size: 8.5pt;
+  line-height: 1.35;
+}
+.resume-print .resume-micro {
+  font-size: 7pt;
+  line-height: 1.35;
+}
+.resume-print .resume-body {
+  font-size: 9pt;
+  line-height: 1.4;
+}
+.resume-print .resume-emphasis {
   font-size: 9.5pt;
   line-height: 1.3;
-  max-width: 7.7in;
-  margin: 0 auto;
 }
 
+/* ── Header: name+tagline (left) ┃ contact list (right) ──────────── */
 .resume-print__header {
-  text-align: center;
-  margin: 0 0 10pt;
-  padding-bottom: 6pt;
-  border-bottom: 0.5pt solid #000;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 18pt;
+  margin-bottom: var(--pp-gap-xl);
+  padding-bottom: 7pt;
+  border-bottom: 0.5pt solid var(--pp-ink);
 }
 
-.resume-print__name {
-  margin: 0 0 4pt;
-  font-size: 20pt;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+.resume-print__identity { min-width: 0; }
+
+.resume-print__name { margin: 0; }
+
+.resume-print__tagline {
+  margin: 4pt 0 0;
+  color: var(--pp-soft);
+  font-style: italic;
+}
+
+.resume-print__location {
+  margin: 2pt 0 0;
+  color: var(--pp-soft);
 }
 
 .resume-print__contact {
+  list-style: none;
   margin: 0;
-  font-size: 8.5pt;
-  color: #222;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5pt;
+  text-align: right;
+  color: var(--pp-soft);
+  white-space: nowrap;
+  /* Compact sizing so the right column's total height (5 items × ~9pt)
+     matches the left column (name 22pt + tagline + location ≈ 49pt) and
+     the two columns bottom-align cleanly without the right list peeking
+     above the name. Sans (Instrument Sans) is inherited from .resume-print. */
+  font-size: 7pt;
+  line-height: 1.3;
 }
 
-.resume-print__contact a {
+/* Each contact line is laid out by `.resume-print__contact-link` (the
+   wrapping <a> or <span> in the JSX). Making *that* the inline-flex
+   container — rather than the <li> — keeps the icon beside the text on
+   a single line. `text-align: right` on the UL handles right-alignment
+   of the inline-flex blocks. */
+.resume-print__contact-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5pt;
   color: inherit;
   text-decoration: none;
 }
 
-.resume-print__sep {
-  color: #666;
+.resume-print__contact-icon {
+  width: 7pt;
+  height: 7pt;
+  opacity: 0.7;
+  flex-shrink: 0;
 }
 
+/* ── Section heading: accent eyebrow + inter-section divider. ──────
+   First section sits flush against the header rule with just a margin
+   gap. Each subsequent section gets a full-width hairline above it as
+   the inter-section divider — the eyebrow text rides just below. */
 .resume-print__section {
-  margin-top: 6pt;
+  margin-top: var(--pp-gap-lg);
 }
 
-.resume-print__section-title {
-  margin: 0 0 5pt;
-  padding-bottom: 2pt;
-  font-size: 10pt;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  border-bottom: 0.5pt solid #000;
+.resume-print__section + .resume-print__section {
+  margin-top: var(--pp-gap-lg);
+  padding-top: var(--pp-gap-lg);
+  border-top: 0.4pt solid var(--pp-rule);
 }
 
+/* Section title: a larger, heavier mono eyebrow that elevates above the
+   skill-category labels (which inherit the standard 7.5pt eyebrow scale).
+   Selector specificity matches `.resume-print .resume-eyebrow` so the
+   font-size / letter-spacing / weight overrides win, while still
+   inheriting the eyebrow's mono family + uppercase from globals.css. */
+.resume-print .resume-print__section-title {
+  margin: 0 0 6pt;
+  color: var(--accent);
+  font-size: 9pt;
+  letter-spacing: 0.2em;
+  font-weight: 500;
+}
+
+/* ── Generic head row (left text + right period). ────────────────── */
 .resume-print__line {
   display: flex;
   justify-content: space-between;
@@ -294,98 +365,141 @@ body:has(.resume-screen) { padding-bottom: 0; }
 }
 
 .resume-print__period {
-  font-size: 8.5pt;
-  color: #333;
+  color: var(--pp-soft);
   white-space: nowrap;
+}
+
+/* ── Education ─────────────────────────────────────────────────────
+   page-break-inside: avoid keeps the (typically short) education list
+   together with its section title. If a future résumé has so much
+   education content that the whole list can't fit on a page, the
+   browser falls back gracefully and allows internal breaks. */
+.resume-print__edu-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pp-gap-sm);
+  page-break-inside: avoid;
+  break-inside: avoid;
 }
 
 .resume-print__degree {
   margin-top: 0.5pt;
-  font-size: 9.5pt;
+  color: var(--pp-soft);
 }
 
-.resume-print__edu {
-  margin-bottom: 1pt;
-}
-
+/* ── Skills: CSS grid (label / value pairs), accent labels. ──────── */
 .resume-print__skills {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 9pt;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  column-gap: 10pt;
+  row-gap: var(--pp-gap-sm);
+  margin: 0;
 }
 
 .resume-print__skill-name {
-  width: 110pt;
-  padding: 0.5pt 0;
-  font-weight: 700;
-  vertical-align: top;
+  margin: 0;
+  color: var(--accent);
   white-space: nowrap;
+  align-self: baseline;
 }
 
 .resume-print__skill-items {
-  padding: 0.5pt 0;
-  vertical-align: top;
+  margin: 0;
+}
+
+/* ── Experience / project entries ──────────────────────────────────
+   page-break-inside: avoid on each project prevents an awkward break
+   between a project header and its bullets. Across-project breaks are
+   still allowed so the page-breaker can fill the bottom of page 1. */
+.resume-print__entries {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pp-gap-md);
 }
 
 .resume-print__project {
-  margin-bottom: 6pt;
+  page-break-inside: avoid;
+  break-inside: avoid;
 }
 
-.resume-print__entry-name {
-  font-weight: 700;
+.resume-print__entry-title-row {
+  margin: 0;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0;
+  flex-wrap: wrap;
+  font-weight: inherit;
 }
 
 .resume-print__entry-title {
-  font-weight: 400;
+  color: var(--pp-soft);
+  font-style: italic;
 }
 
 .resume-print__link {
   margin-top: 1pt;
-  font-size: 8.5pt;
+  color: var(--pp-soft);
 }
 
-.resume-print__link a {
-  color: inherit;
-}
+.resume-print__link a { color: inherit; }
 
 .resume-print__stack {
   margin-top: 1pt;
-  font-size: 8.5pt;
-  color: #444;
+  color: var(--pp-soft);
 }
 
-/* Summary — pull-quote treatment matching screen's bordered blockquote.
-   Hidden in print to preserve one-page fit; the bullets carry the
-   substance. Screen layout keeps the summary visible. */
 .resume-print__summary {
   margin-top: 3pt;
   padding-left: 7pt;
-  border-left: 0.5pt solid #888;
-  font-size: 9pt;
+  border-left: 0.75pt solid var(--accent);
   font-style: italic;
-  color: #333;
+  color: var(--pp-soft);
 }
 
-@media print {
-  .resume-print__summary {
-    display: none;
-  }
-}
-
+/* ── ✦ bullets in accent-red — mirrors the screen layout. ────────────
+   Hanging indent: each <li> uses `padding-left + text-indent` so the
+   first line (✦ + text) starts at the section title's left edge, and
+   continuation lines wrap to align with the text after the ✦. That
+   makes the visual leftmost column of bullets line up with section
+   titles / entry names — eliminating the perceived "left margin
+   bigger than right" effect a flat indented block created. */
 .resume-print__bullets {
-  margin: 3pt 0 0;
-  padding-left: 13pt;
-  list-style: disc;
+  list-style: none;
+  margin: var(--pp-gap-sm) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pp-gap-xs);
 }
 
 .resume-print__bullets li {
-  margin-bottom: 1pt;
+  padding-left: var(--pp-indent);
+  text-indent: calc(-1 * var(--pp-indent));
+}
+
+.resume-print__bullet-mark {
+  color: var(--accent);
+  /* Reserved width so the ✦ + space takes exactly `--pp-indent` of
+     horizontal room. Continuation lines wrap to that boundary. */
+  display: inline-block;
+  width: var(--pp-indent);
+  text-indent: 0;
 }
 
 /* Inline code in print: monospace font only — no background or padding.
    The background looked like a printer artifact and the padding created a
    visible gap when code sat adjacent to punctuation ("public -schema"). */
 .resume-print code {
-  font-family: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  font-family: var(--font-mono, "JetBrains Mono", ui-monospace, monospace);
   font-size: 0.92em;
+}
+
+/* Bare links inside the body: inherit the surrounding color, no
+   underline. Recruiter PDFs read cleaner without blue web-link styling. */
+.resume-print a {
+  color: inherit;
+  text-decoration: none;
 }

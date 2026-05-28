@@ -1,15 +1,7 @@
-import type { IconType } from "react-icons";
-import {
-  FaArrowUpRightFromSquare,
-  FaEnvelope,
-  FaGithub,
-  FaGlobe,
-  FaLink,
-  FaLinkedinIn,
-  FaPhone,
-} from "react-icons/fa6";
+import { FaArrowUpRightFromSquare, FaGithub } from "react-icons/fa6";
 import type { ContactItem, EducationItem, Entry, Resume, SkillCategory } from "../data";
 import { DEFAULT_SECTION_TITLES } from "../data";
+import { getContactIcon } from "../contact-icon";
 import { formatInline } from "../format-inline";
 import PrintButton from "./PrintButton";
 
@@ -275,16 +267,6 @@ function BulletsBody({ bullets }: { bullets: string[] }) {
       ))}
     </ul>
   );
-}
-
-function getContactIcon(label: string): IconType {
-  const l = (label ?? "").toLowerCase();
-  if (l.includes("phone") || l.includes("tel") || l.includes("cell")) return FaPhone;
-  if (l.includes("email") || l.includes("mail")) return FaEnvelope;
-  if (l.includes("linkedin")) return FaLinkedinIn;
-  if (l.includes("github") || l.includes("git")) return FaGithub;
-  if (l.includes("site") || l.includes("web") || l.includes("portfolio") || l.includes("page")) return FaGlobe;
-  return FaLink;
 }
 
 function Section({
