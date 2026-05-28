@@ -67,8 +67,6 @@ export type CustomSection =
       categories: SkillCategory[];
     };
 
-export type CustomSectionShape = CustomSection["shape"];
-
 // sectionOrder entries are either a built-in SectionKey or a custom-section
 // id. We type the array as plain string[] for storage / JSON-roundtrip
 // simplicity; isBuiltInKey + resolveSectionOrder narrow at the boundary.
