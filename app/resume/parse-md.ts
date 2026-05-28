@@ -1,5 +1,5 @@
 /**
- * parse-md.ts — bidirectional markdown ↔ Resume converter.
+ * parse-md.ts — markdown → Resume parser (for the /resume route + terminal pager).
  *
  * Markdown format:
  *
@@ -43,16 +43,8 @@ import type {
   Entry,
   CustomSection,
 } from "./data";
-import {
-  newCustomSectionId,
-  resolveSectionOrder,
-  DEFAULT_SECTION_TITLES,
-} from "./data";
-import {
-  parseFrontmatter,
-  splitFrontmatter,
-  LABEL_TO_KEY,
-} from "./parse-frontmatter";
+import { newCustomSectionId } from "./data";
+import { parseFrontmatter, splitFrontmatter } from "./parse-frontmatter";
 
 // ─── Frontmatter parsing now lives in parse-frontmatter.ts (shared with the
 //     pager's parse-blocks.ts so the two parsers can't drift on contact
@@ -269,84 +261,4 @@ export function parseMd(markdown: string): Resume {
     sectionOrder: sectionOrder.length ? sectionOrder : undefined,
     customSections: customSections.length ? customSections : undefined,
   };
-}
-
-// ─── Public: resumeToMd ───────────────────────────────────────────────────────
-
-function serializeEntry(entry: Entry): string[] {
-  const lines: string[] = [];
-
-  let heading = `### ${entry.name}`;
-  if (entry.title) heading += ` — ${entry.title}`;
-  if (entry.period) heading += `  *(${entry.period})*`;
-  lines.push(heading, "");
-
-  if (entry.link) lines.push(`[${entry.link.label}](${entry.link.href})`, "");
-  if (entry.repo) lines.push(`repo: [${entry.repo.label}](${entry.repo.href})`, "");
-  if (entry.stack.length) lines.push(entry.stack.map((s) => `\`${s}\``).join(" "), "");
-  if (entry.summary) lines.push(`> ${entry.summary}`, "");
-  for (const b of entry.bullets) lines.push(`- ${b}`);
-  lines.push("");
-
-  return lines;
-}
-
-function contactKeyFor(label: string): string {
-  return LABEL_TO_KEY[label.toLowerCase()] ?? label.toLowerCase();
-}
-
-export function resumeToMd(resume: Resume): string {
-  const lines: string[] = [];
-
-  // Frontmatter
-  lines.push("---");
-  lines.push(`name: ${resume.name}`);
-  if (resume.tagline) lines.push(`tagline: ${resume.tagline}`);
-  if (resume.location) lines.push(`location: ${resume.location}`);
-  if (resume.lastUpdated) lines.push(`lastUpdated: ${resume.lastUpdated}`);
-  for (const c of resume.contact) {
-    lines.push(`${contactKeyFor(c.label)}: ${c.value}`);
-  }
-  lines.push("---", "");
-
-  const order = resolveSectionOrder(resume.sectionOrder, resume.customSections);
-
-  for (const id of order) {
-    if (id === "projects") {
-      const title = resume.sectionTitles?.projects ?? DEFAULT_SECTION_TITLES.projects;
-      lines.push(`## ${title}`, "");
-      for (const e of resume.projects) lines.push(...serializeEntry(e));
-    } else if (id === "skills") {
-      const title = resume.sectionTitles?.skills ?? DEFAULT_SECTION_TITLES.skills;
-      lines.push(`## ${title}`, "");
-      for (const cat of resume.skills) {
-        lines.push(`- **${cat.name}** · ${cat.items.join(" · ")}`);
-      }
-      lines.push("");
-    } else if (id === "education") {
-      const title = resume.sectionTitles?.education ?? DEFAULT_SECTION_TITLES.education;
-      lines.push(`## ${title}`, "");
-      for (const edu of resume.education) {
-        lines.push(`- **${edu.school}** · ${edu.degree} · ${edu.period}`);
-      }
-      lines.push("");
-    } else {
-      const cs = resume.customSections?.find((s) => s.id === id);
-      if (!cs) continue;
-      lines.push(`## ${cs.title}`, "");
-      if (cs.shape === "entries") {
-        for (const e of cs.entries) lines.push(...serializeEntry(e));
-      } else if (cs.shape === "categories") {
-        for (const cat of cs.categories) {
-          lines.push(`- **${cat.name}** · ${cat.items.join(" · ")}`);
-        }
-        lines.push("");
-      } else {
-        for (const b of cs.bullets) lines.push(`- ${b}`);
-        lines.push("");
-      }
-    }
-  }
-
-  return lines.join("\n").trimEnd() + "\n";
 }
