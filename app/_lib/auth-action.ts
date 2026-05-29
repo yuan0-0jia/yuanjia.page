@@ -45,6 +45,9 @@ export async function logout() {
       .from("site")
       .update({ last_logout: new Date().toISOString() })
       .eq("id", 1);
+    // Home is cached (ISR) — refresh it so the terminal `last` command shows
+    // the new logout timestamp immediately rather than after the ISR window.
+    revalidatePath("/");
   }
   await supabase.auth.signOut();
 }
@@ -180,7 +183,10 @@ export async function updateResumeMd(md: string) {
     );
   }
 
+  // Resume markdown also feeds the home terminal (`cat`/`less resume.md`), so
+  // refresh both cached routes.
   revalidatePath("/resume");
+  revalidatePath("/");
 }
 
 /**

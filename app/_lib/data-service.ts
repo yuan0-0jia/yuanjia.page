@@ -1,4 +1,4 @@
-import { createClient } from "@/utils/supabase/server";
+import { createPublicClient } from "@/utils/supabase/server";
 import type { Resume } from "@/app/resume/data";
 
 export type Site = {
@@ -18,7 +18,9 @@ export type Site = {
  * no avatar, no login record).
  */
 export async function getSite(): Promise<Site> {
-  const supabase = await createClient();
+  // Public read (cookieless) so callers stay statically prerenderable — the
+  // `site` row is identical for every visitor; owner-only UI hydrates client-side.
+  const supabase = createPublicClient();
   const { data, error } = await supabase
     .from("site")
     .select("bio, resume_md, avatar, whoami, last_login, last_logout")

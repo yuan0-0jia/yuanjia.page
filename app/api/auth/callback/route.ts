@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
+import { revalidatePath } from "next/cache";
 import { OWNER_ID } from "@/app/_lib/owner";
 
 export async function GET(request: Request) {
@@ -42,6 +43,9 @@ export async function GET(request: Request) {
           .from("site")
           .update({ last_login: new Date().toISOString() })
           .eq("id", 1);
+        // Home is cached (ISR) — refresh it so the `last` command surfaces the
+        // new login timestamp on the next visit (the redirect below).
+        revalidatePath("/");
       }
 
       const forwardedHost = request.headers.get("x-forwarded-host");
