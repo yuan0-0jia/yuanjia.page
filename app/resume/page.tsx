@@ -26,9 +26,18 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function Page() {
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string }>;
+}) {
   const resume = await getResumeData();
   if (!resume) notFound();
+
+  // Only offer "back to home" to visitors who arrived from the terminal
+  // (our links carry ?from=home); cold/external hits get no home link.
+  const { from } = await searchParams;
+  const fromHome = from === "home";
 
   return (
     <>
@@ -43,7 +52,7 @@ export default async function Page() {
           __html: JSON.stringify(buildPersonJsonLd(resume)),
         }}
       />
-      <ResumeScreen resume={resume} />
+      <ResumeScreen resume={resume} showHome={fromHome} />
       <ResumePrint resume={resume} />
     </>
   );

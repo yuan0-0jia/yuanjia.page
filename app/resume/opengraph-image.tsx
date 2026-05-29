@@ -10,7 +10,7 @@ export default async function Image() {
   // Falls back to a minimal branded card if the DB has no resume yet, so the
   // social image never breaks even without resume content.
   const resume = await getResumeData();
-  const name = resume?.name ?? "Yuan Jia";
+  const name = resume?.name ?? "";
   const tagline = resume?.tagline;
   const location = resume?.location;
 

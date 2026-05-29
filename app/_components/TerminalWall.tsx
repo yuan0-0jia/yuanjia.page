@@ -10,13 +10,16 @@ import {
   type ReactNode,
 } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import "./terminal-wall.css";
 import { renderBio } from "../_lib/render-bio";
 import { useDock } from "./DockProvider";
 import { useAuth } from "./AuthProvider";
-import { login, logout, updateBio, updateResumeMd } from "../_lib/auth-action";
+import { login, logout, updateBio, updateResumeMd, updateWhoami } from "../_lib/auth-action";
+import { parseWhoami, type WhoamiField } from "../_lib/whoami";
 import type { NanoFile } from "./NanoEditor";
 
 // Owner-only UI: lazy-loaded, never shipped to anonymous visitors.
@@ -34,19 +37,6 @@ const LessPager = dynamic(() => import("./LessPager"), {
   ssr: false,
   loading: () => null,
 });
-
-// Seed for the ~/resume.md editor + `less` pager when the DB has no resume yet.
-// Prod always has one; this is just the empty-DB / first-run starter.
-const EMPTY_RESUME_MD = `---
-name: Yuan Jia
----
-
-## Experience
-
-## Skills
-
-## Education
-`;
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -66,6 +56,7 @@ interface TerminalWallProps {
   bio: string | null;
   avatar: string | null;
   resumeMd: string | null;
+  whoami: string | null;
   lastLogin: string | null;
   lastLogout: string | null;
 }
@@ -84,6 +75,7 @@ interface CmdCtx {
   isMobile: boolean;
   bio: string;
   avatar: string | null;
+  whoami: WhoamiField[];
   isAuthenticated: boolean;
   // When true, the command is being re-run to rebuild persisted output on
   // restore: render the body, but skip the one-shot side effects.
@@ -95,9 +87,11 @@ interface CmdCtx {
   doLogout: () => void;
   openBioEditor: () => void;
   openResumeEditor: () => void;
+  openWhoamiEditor: () => void;
   openExternal: (url: string) => void;
   composeEmail: () => void;
   openResume: () => void;
+  openResumePage: () => void;
   setTheme: (t: TermTheme) => void;
   setCols: (c: number) => void;
   clear: () => void;
@@ -142,6 +136,16 @@ const LINKS = [
     perms: "lrwxrwxrwx",
     permClass: "yjt-blue",
   },
+  // /resume reads ?from=home to show a "back to home" link only for visitors
+  // arriving from the terminal (cold/external hits get no home link).
+  {
+    name: "resume",
+    target: "→ /resume",
+    href: "/resume?from=home",
+    external: false,
+    perms: "lrwxrwxrwx",
+    permClass: "yjt-blue",
+  },
   {
     name: "email",
     target: "→ hello.yuanjia@gmail.com",
@@ -161,6 +165,7 @@ const COMMANDS = [
   { name: "cat <file>", desc: "read about.md, resume.md, …" },
   { name: "less <file>", desc: "page resume.md" },
   { name: "flickr fetch", desc: "view photo grid" },
+  { name: "resume", desc: "open résumé page" },
   { name: "github", desc: "open github ↗" },
   { name: "linkedin", desc: "open linkedin ↗" },
   { name: "email", desc: "compose email" },
@@ -173,7 +178,7 @@ const COMMANDS = [
 // still work when typed, they're just not suggested), plus the argument options
 // for the commands that take one.
 const COMPLETIONS = [
-  "options", "whoami", "ls", "flickr",
+  "options", "whoami", "ls", "flickr", "resume",
   "github", "linkedin", "email", "theme", "cols", "clear",
   "restart", "exit",
   "pwd", "cd", "cat", "less", "which", "man", "history", "last", "uptime",
@@ -350,13 +355,24 @@ function CmdLine({
   );
 }
 
+// Accent color for well-known whoami keys; any other key (and key-less lines)
+// render in the default ink.
+const WHOAMI_COLORS: Record<string, string> = {
+  name: "yjt-green",
+  loc: "yjt-blue",
+  status: "yjt-yellow",
+};
+
 function BodyWhoami({
   avatar,
   isAuthenticated,
+  whoami,
 }: {
   avatar?: string | null;
   isAuthenticated?: boolean;
+  whoami: WhoamiField[];
 }) {
+  const name = whoami.find((f) => f.key === "name")?.value;
   return (
     <div className="yjt-body yjt-whoami">
       {avatar &&
@@ -365,26 +381,25 @@ function BodyWhoami({
           <AvatarUpload src={avatar} />
         ) : (
           <div className="yjt-whoami-avatar">
-            <Image src={avatar} alt="Yuan Jia" width={96} height={96} draggable={false} priority />
+            <Image src={avatar} alt={name ?? "avatar"} width={96} height={96} draggable={false} priority />
           </div>
         ))}
+      {/* Rows come straight from `nano whoami` (site.whoami) in file order — any
+          `key: value` line shows up; a key-less line (e.g. a tagline) renders on
+          its own; removing a line drops its row. */}
       <div className="yjt-whoami-info">
-        <div className="yjt-kv">
-          <span className="yjt-kv-k">name</span>
-          <span className="yjt-kv-v yjt-green">Yuan Jia</span>
-        </div>
-        <div className="yjt-kv">
-          <span className="yjt-kv-k">role</span>
-          <span className="yjt-kv-v">software engineer &amp; photographer</span>
-        </div>
-        <div className="yjt-kv">
-          <span className="yjt-kv-k">loc</span>
-          <span className="yjt-kv-v yjt-blue">Santa Clara, CA</span>
-        </div>
-        <div className="yjt-kv">
-          <span className="yjt-kv-k">status</span>
-          <span className="yjt-kv-v yjt-yellow">open to work</span>
-        </div>
+        {whoami.map((f, i) => (
+          <div className="yjt-kv" key={`${f.key ?? ""}-${i}`}>
+            {f.key && <span className="yjt-kv-k">{f.key}</span>}
+            <span
+              className={["yjt-kv-v", f.key ? WHOAMI_COLORS[f.key] : undefined]
+                .filter(Boolean)
+                .join(" ")}
+            >
+              {f.value}
+            </span>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -407,21 +422,35 @@ function BodyLinks() {
         <span>name</span>
         <span>target</span>
       </div>
-      {LINKS.map((link) => (
-        <a
-          key={link.name}
-          href={link.href}
-          target={link.external ? "_blank" : undefined}
-          rel={link.external ? "noopener noreferrer" : undefined}
-          className="yjt-ls-row"
-        >
-          <span className={`yjt-ls-type ${link.permClass}`}>{link.perms}</span>
-          <span className="yjt-ls-name">{link.name}</span>
-          <span className="yjt-ls-target">
-            {link.target} {link.external && <span className="yjt-faint">↗</span>}
-          </span>
-        </a>
-      ))}
+      {LINKS.map((link) => {
+        // Internal routes (e.g. /resume) navigate client-side via <Link>;
+        // off-site links and mailto: stay plain <a>.
+        const internal = link.href.startsWith("/");
+        const inner = (
+          <>
+            <span className={`yjt-ls-type ${link.permClass}`}>{link.perms}</span>
+            <span className="yjt-ls-name">{link.name}</span>
+            <span className="yjt-ls-target">
+              {link.target} {link.external && <span className="yjt-faint">↗</span>}
+            </span>
+          </>
+        );
+        return internal ? (
+          <Link key={link.name} href={link.href} className="yjt-ls-row">
+            {inner}
+          </Link>
+        ) : (
+          <a
+            key={link.name}
+            href={link.href}
+            target={link.external ? "_blank" : undefined}
+            rel={link.external ? "noopener noreferrer" : undefined}
+            className="yjt-ls-row"
+          >
+            {inner}
+          </a>
+        );
+      })}
     </div>
   );
 }
@@ -588,9 +617,7 @@ function BodyManYuan() {
       <span className="yjt-green">SYNOPSIS</span>
       {"\n  yuan [--code] [--shutter] [--coffee]\n\n"}
       <span className="yjt-green">DESCRIPTION</span>
-      {"\n  Builds platform infrastructure by day, takes pictures the rest of\n  the time. Currently at "}
-      <span className="yjt-blue">Flyer</span>
-      {". Santa Clara, CA.\n\n"}
+      {"\n  Builds platform infrastructure by day, takes pictures the rest of\n  the time.\n\n"}
       <span className="yjt-green">OPTIONS</span>
       {"\n  --code      preferred mode\n  --shutter   for the artistic subprocess\n  --coffee    "}
       <span className="yjt-yellow">required</span>
@@ -604,6 +631,8 @@ function BodyManYuan() {
       <span className="yjt-blue">linkedin</span>
       {"(1), "}
       <span className="yjt-blue">flickr</span>
+      {"(1), "}
+      <span className="yjt-blue">resume</span>
       {"(1)"}
     </BodyPre>
   );
@@ -719,7 +748,7 @@ function runCommand(input: string, ctx: CmdCtx): CmdResult {
 
     case "whoami":
       return {
-        body: <BodyWhoami avatar={ctx.avatar} isAuthenticated={ctx.isAuthenticated} />,
+        body: <BodyWhoami avatar={ctx.avatar} isAuthenticated={ctx.isAuthenticated} whoami={ctx.whoami} />,
       };
 
     case "cat": {
@@ -817,6 +846,11 @@ function runCommand(input: string, ctx: CmdCtx): CmdResult {
       };
     }
 
+    case "resume":
+    case "cv":
+      if (!ctx.replay) ctx.openResumePage();
+      return { body: <BodyNote>→ /resume</BodyNote> };
+
     case "github":
       if (!ctx.replay) ctx.openExternal("https://github.com/yuan0-0jia");
       return {
@@ -844,11 +878,23 @@ function runCommand(input: string, ctx: CmdCtx): CmdResult {
 
     case "login":
     case "signin":
+      if (ctx.isAuthenticated) {
+        return {
+          body: (
+            <BodyNote>
+              already logged in as <span className="yjt-green">yuan</span>
+            </BodyNote>
+          ),
+        };
+      }
       if (!ctx.replay) ctx.openLogin();
       return { body: <BodyNote>→ redirecting to google sign-in…</BodyNote> };
 
     case "logout":
     case "signout":
+      if (!ctx.isAuthenticated) {
+        return { body: <BodyNote>not logged in</BodyNote> };
+      }
       if (!ctx.replay) ctx.doLogout();
       return { body: <BodyNote>signing out…</BodyNote> };
 
@@ -865,7 +911,7 @@ function runCommand(input: string, ctx: CmdCtx): CmdResult {
       }
       const file = (args[0] || "").toLowerCase();
       if (!file) {
-        return { body: <BodyNote tone="prompt-c">usage: nano about.md | resume.md</BodyNote> };
+        return { body: <BodyNote tone="prompt-c">usage: nano about.md | resume.md | whoami.md</BodyNote> };
       }
       if (["about", "about.md", "~/about.md", "bio"].includes(file)) {
         if (!ctx.replay) ctx.openBioEditor();
@@ -875,10 +921,14 @@ function runCommand(input: string, ctx: CmdCtx): CmdResult {
         if (!ctx.replay) ctx.openResumeEditor();
         return { body: <BodyNote>GNU nano — editing ~/resume.md…</BodyNote> };
       }
+      if (["whoami", "whoami.md", "~/whoami.md", "profile"].includes(file)) {
+        if (!ctx.replay) ctx.openWhoamiEditor();
+        return { body: <BodyNote>GNU nano — editing ~/whoami.md…</BodyNote> };
+      }
       return {
         body: (
           <BodyNote tone="prompt-c">
-            nano: cannot edit &apos;{args[0]}&apos; — try about.md or resume.md
+            nano: cannot edit &apos;{args[0]}&apos; — try about.md, resume.md, or whoami.md
           </BodyNote>
         ),
       };
@@ -1146,9 +1196,10 @@ function Prompt({
 
 // ─── Main component ──────────────────────────────────────────────────────────
 
-export default function TerminalWall({ photos, albumTotal, bio, avatar, resumeMd, lastLogin, lastLogout }: TerminalWallProps) {
+export default function TerminalWall({ photos, albumTotal, bio, avatar, resumeMd, whoami, lastLogin, lastLogout }: TerminalWallProps) {
   const { resolvedTheme, setTheme: setSiteTheme } = useTheme();
   const { isAuthenticated } = useAuth();
+  const router = useRouter();
 
   // On mobile (≤600px) default to 2 cols and show 10 photos; desktop uses 5 / 20.
   const isMobile = typeof window !== "undefined" && window.innerWidth <= 600;
@@ -1160,6 +1211,10 @@ export default function TerminalWall({ photos, albumTotal, bio, avatar, resumeMd
   // Bio is stateful so the inline `nano about.md` editor can reflect a save
   // without a full reload.
   const [bioText, setBioText] = useState(bio ?? "");
+  // whoami card fields, editable via `nano whoami`. Text is stateful (like
+  // bioText) so a save reflects without a reload; parsed into the card fields.
+  const [whoamiText, setWhoamiText] = useState(whoami ?? "");
+  const parsedWhoami = useMemo(() => parseWhoami(whoamiText), [whoamiText]);
   // The file open in the inline nano editor (about.md or resume.md), or null
   // when not editing. Auth-gated via the nano command.
   const [nanoFile, setNanoFile] = useState<NanoFile | null>(null);
@@ -1321,6 +1376,7 @@ export default function TerminalWall({ photos, albumTotal, bio, avatar, resumeMd
       isMobile,
       bio: bioText,
       avatar,
+      whoami: parsedWhoami,
       isAuthenticated,
       replay,
       openPhoto: (subset, i) => setLightbox({ photos: subset, index: i }),
@@ -1341,12 +1397,22 @@ export default function TerminalWall({ photos, albumTotal, bio, avatar, resumeMd
         window.scrollTo({ top: 0 });
       },
       openResumeEditor: () => {
-        // Seed from the DB markdown, or a minimal template on first run.
         setNanoFile({
           name: "~/resume.md",
-          initial: resumeMd ?? EMPTY_RESUME_MD,
+          initial: resumeMd ?? "",
           save: async (t) => {
             await updateResumeMd(t);
+          },
+        });
+        window.scrollTo({ top: 0 });
+      },
+      openWhoamiEditor: () => {
+        setNanoFile({
+          name: "~/whoami.md",
+          initial: whoamiText,
+          save: async (t) => {
+            await updateWhoami(t);
+            setWhoamiText(t);
           },
         });
         window.scrollTo({ top: 0 });
@@ -1356,9 +1422,11 @@ export default function TerminalWall({ photos, albumTotal, bio, avatar, resumeMd
         window.location.href = "mailto:hello.yuanjia@gmail.com";
       },
       openResume: () => {
-        setLessMarkdown(resumeMd ?? EMPTY_RESUME_MD);
+        setLessMarkdown(resumeMd);
         window.scrollTo({ top: 0 });
       },
+      // ?from=home → /resume shows the back-home link (see LINKS note).
+      openResumePage: () => router.push("/resume?from=home"),
       setTheme: (t) => setSiteTheme(t),
       setCols: (c) => setCols(c),
       clear: () => {
@@ -1373,7 +1441,7 @@ export default function TerminalWall({ photos, albumTotal, bio, avatar, resumeMd
       lastLogout,
       sessionStartMs: sessionStartMsRef.current,
     }),
-    [photos, albumTotal, cols, bioText, avatar, resumeMd, isAuthenticated, setSiteTheme, restartSession, history, lastLogin, lastLogout]
+    [photos, albumTotal, cols, bioText, avatar, resumeMd, whoamiText, parsedWhoami, isAuthenticated, setSiteTheme, restartSession, history, lastLogin, lastLogout, router]
   );
 
   const submitCommand = useCallback(
@@ -1598,7 +1666,7 @@ export default function TerminalWall({ photos, albumTotal, bio, avatar, resumeMd
   const renderInitialBody = (i: number): ReactNode => {
     switch (i) {
       case 0:
-        return <BodyWhoami avatar={avatar} isAuthenticated={isAuthenticated} />;
+        return <BodyWhoami avatar={avatar} isAuthenticated={isAuthenticated} whoami={parsedWhoami} />;
       case 1:
         return <BodyAbout bio={bioText} />;
       case 2:

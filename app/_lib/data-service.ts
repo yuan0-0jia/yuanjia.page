@@ -5,6 +5,7 @@ export type Site = {
   bio: string | null;
   resumeMd: string | null;
   avatar: string | null;
+  whoami: string | null;
   lastLogin: string | null;
   lastLogout: string | null;
 };
@@ -20,7 +21,7 @@ export async function getSite(): Promise<Site> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("site")
-    .select("bio, resume_md, avatar, last_login, last_logout")
+    .select("bio, resume_md, avatar, whoami, last_login, last_logout")
     .eq("id", 1)
     .single();
 
@@ -35,13 +36,14 @@ export async function getSite(): Promise<Site> {
         hint: error.hint,
       });
     }
-    return { bio: null, resumeMd: null, avatar: null, lastLogin: null, lastLogout: null };
+    return { bio: null, resumeMd: null, avatar: null, whoami: null, lastLogin: null, lastLogout: null };
   }
 
   return {
     bio: (data?.bio as string | null) ?? null,
     resumeMd: (data?.resume_md as string | null) ?? null,
     avatar: (data?.avatar as string | null) ?? null,
+    whoami: (data?.whoami as string | null) ?? null,
     lastLogin: (data?.last_login as string | null) ?? null,
     lastLogout: (data?.last_logout as string | null) ?? null,
   };

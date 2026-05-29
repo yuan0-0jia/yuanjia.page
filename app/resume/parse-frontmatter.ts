@@ -3,17 +3,6 @@
  * `parseMd` (→ typed Resume for /resume route) and `parseBlocks` (→ pager block
  * stream). Centralized here so the two parsers can't drift on contact-key
  * handling, key aliasing, or href inference.
- *
- * Frontmatter format:
- *   ---
- *   name: Yuan Jia
- *   tagline: Platform engineer …
- *   location: Santa Clara, CA
- *   lastUpdated: May 2026
- *   phone: 859-608-4045
- *   email: hello@example.com
- *   linkedin: linkedin.com/in/foo
- *   ---
  */
 
 import type { ContactItem } from "./data";

@@ -16,6 +16,7 @@ export default async function Home() {
       bio={site.bio}
       avatar={site.avatar}
       resumeMd={site.resumeMd}
+      whoami={site.whoami}
       lastLogin={site.lastLogin}
       lastLogout={site.lastLogout}
     />

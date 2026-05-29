@@ -182,3 +182,32 @@ export async function updateResumeMd(md: string) {
 
   revalidatePath("/resume");
 }
+
+/**
+ * Replace the whoami block. Auth-gated. Writes to `site.whoami` (singleton row
+ * id=1) and revalidates the homepage. No parse-validation — any text saves;
+ * blank/removed lines just fall back to defaults or hide their row.
+ */
+export async function updateWhoami(whoami: string) {
+  const { data, error } = await getUser();
+  if (error || !data?.user) throw new Error("You must be logged in");
+
+  const supabase = await createClient();
+  const { data: updated, error: updateError } = await supabase
+    .from("site")
+    .update({ whoami })
+    .eq("id", 1)
+    .select();
+
+  if (updateError) {
+    console.error("[whoami] update error:", updateError);
+    throw new Error(`whoami could not be updated: ${updateError.message}`);
+  }
+  if (!updated || updated.length === 0) {
+    throw new Error(
+      "whoami update matched 0 rows — your session may lack write permission (check RLS) or the site row is missing."
+    );
+  }
+
+  revalidatePath("/");
+}

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { FaArrowUpRightFromSquare, FaGithub } from "react-icons/fa6";
 import type { ContactItem, EducationItem, Entry, Resume, SkillCategory } from "../data";
 import { DEFAULT_SECTION_TITLES } from "../data";
@@ -18,10 +19,25 @@ import PrintButton from "./PrintButton";
 // main). The structural split is the layout's job; sectionOrder lives
 // on the data model for the markdown round-trip + the less pager, where
 // file-order = render-order.
-export default function ResumeScreen({ resume }: { resume: Resume }) {
+export default function ResumeScreen({
+  resume,
+  showHome = false,
+}: {
+  resume: Resume;
+  showHome?: boolean;
+}) {
   return (
     <div className="resume-screen flex flex-col items-center px-4 md:px-8 lg:px-12 py-8 md:py-12 lg:py-16">
       <div className="w-full max-w-3xl lg:max-w-5xl">
+        {showHome && (
+          <Link
+            href="/"
+            className="group resume-meta text-soft inline-flex items-center gap-2 mb-6 md:mb-8 transition-colors hover:text-accent"
+          >
+            <span aria-hidden>←</span>
+            <span className="underline-offset-4 group-hover:underline">back to home</span>
+          </Link>
+        )}
         <ResumeHeader resume={resume} />
         {/* Desktop: 2-col grid — rs-rail is a flex column in col 1, rs-main
             is its own grid item in col 2. Mobile: rs-rail's `display:

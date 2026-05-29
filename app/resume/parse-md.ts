@@ -1,39 +1,5 @@
 /**
  * parse-md.ts — markdown → Resume parser (for the /resume route + terminal pager).
- *
- * Markdown format:
- *
- *   ---
- *   name: Yuan Jia
- *   tagline: Platform engineer building with AI coding agents
- *   location: Santa Clara, CA
- *   lastUpdated: May 2026
- *   phone: 859-608-4045
- *   email: hello.yuanjia@gmail.com
- *   linkedin: linkedin.com/in/yuanjia1
- *   github: github.com/yuan0-0jia
- *   site: yuanjia.page
- *   ---
- *
- *   ## Experience
- *
- *   ### Flyer — Platform Engineer · 5-person agent-driven team  *(2025 – Present)*
- *
- *   [joinflyer.com](https://joinflyer.com)
- *
- *   `TypeScript` `Next.js 16` `Docker`
- *
- *   > One-line summary sentence.
- *
- *   - **Bold lead** rest of bullet.
- *
- *   ## Skills
- *
- *   - **AI Tools** · Claude Code · Codex CLI · Copilot CLI
- *
- *   ## Education
- *
- *   - **UC Santa Cruz** · Master of Science: CS · 2024–2026
  */
 
 import type {
@@ -52,7 +18,6 @@ import { parseFrontmatter, splitFrontmatter } from "./parse-frontmatter";
 
 // ─── Entry parser ────────────────────────────────────────────────────────────
 
-// ### Flyer — Platform Engineer · 5-person agent-driven team  *(2025 – Present)*
 // Parse in stages so we don't depend on optional-non-greedy backtracking.
 function parseEntryHeading(line: string): { name: string; title?: string; period?: string } {
   let s = line.trim().replace(/^###\s+/, "");
