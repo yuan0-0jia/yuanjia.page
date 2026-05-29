@@ -263,6 +263,10 @@ html.matrix .yjt-root {
   margin-bottom: 22px;
   animation: yjt-block-in 0.35s ease-out both;
 }
+/* A submitted REPL command was already visible in the prompt, so don't replay
+   the fade/slide on it (that made the line vanish and pop back). The result
+   body still eases in via its own yjt-body-in. */
+.yjt-block-repl { animation: none; }
 @keyframes yjt-block-in {
   from { opacity: 0; transform: translateY(4px); }
   to   { opacity: 1; transform: translateY(0);   }
@@ -647,7 +651,7 @@ html.matrix .yjt-root {
 }
 
 /* ── Interactive prompt (REPL) ───────────────────────────────────── */
-.yjt-prompt-block { margin-top: 6px; margin-bottom: 0; }
+.yjt-prompt-block { margin-top: 0; margin-bottom: 0; }
 .yjt-input {
   flex: 1;
   min-width: 0;
@@ -932,6 +936,12 @@ html.matrix .yjt-root {
 .yjt-root[data-static] .yjt-body-wrap,
 .yjt-root[data-static] .yjt-cell-img img {
   animation: none;
+}
+/* …but a command typed *after* the static mount is new content, not part of
+   the all-at-once restore, so let its result still ease in (data-static only
+   suppresses the one-time revisit flicker, not live REPL output). */
+.yjt-root[data-static] .yjt-block-live .yjt-body-wrap {
+  animation: yjt-body-in 0.35s ease-out both;
 }
 
 /* ── Reduced motion ──────────────────────────────────────────────── */

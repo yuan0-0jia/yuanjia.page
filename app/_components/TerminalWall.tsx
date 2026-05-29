@@ -250,8 +250,12 @@ function useTypingSequence(
   const [phase, setPhase] = useState<"typing" | "body" | "done">("typing");
   const [cmdProgress, setCmdProgress] = useState(0);
 
-  // Reset whenever runId changes (restart button / shutdown overlay).
-  useEffect(() => {
+  // Reset whenever runId changes (restart button / shutdown overlay). Must run
+  // synchronously before paint: on restart `animate` flips back to true while
+  // `stage` is still at blockCount from the finished run, so a plain effect
+  // would let the browser paint one frame with every block shown (a too-tall
+  // window) before shrinking back to the first typing block.
+  useIsoLayoutEffect(() => {
     setStage(0);
     setPhase("typing");
     setCmdProgress(0);
@@ -1269,7 +1273,7 @@ export default function TerminalWall({ photos, albumTotal, bio, avatar, resumeMd
 
   // REPL state.
   const [sessionBlocks, setSessionBlocks] = useState<
-    { id: number; cmd: string; body: ReactNode }[]
+    { id: number; cmd: string; body: ReactNode; live?: boolean }[]
   >([]);
   const [hideInitial, setHideInitial] = useState(false);
   const [inputValue, setInputValue] = useState("");
@@ -1455,7 +1459,7 @@ export default function TerminalWall({ photos, albumTotal, bio, avatar, resumeMd
         sessionIdRef.current += 1;
         setSessionBlocks((prev) => [
           ...prev,
-          { id: sessionIdRef.current, cmd, body: result.body },
+          { id: sessionIdRef.current, cmd, body: result.body, live: true },
         ]);
         // Live command: scroll its output + the prompt into view.
         requestAnimationFrame(() =>
@@ -1781,7 +1785,10 @@ export default function TerminalWall({ photos, albumTotal, bio, avatar, resumeMd
 
           {/* REPL session output */}
           {sessionBlocks.map((s) => (
-            <section key={s.id} className="yjt-block">
+            <section
+              key={s.id}
+              className={`yjt-block yjt-block-repl${s.live ? " yjt-block-live" : ""}`}
+            >
               <CmdLine cmd={s.cmd} progress={0} isCurrent={false} done />
               {s.body && <div className="yjt-body-wrap">{s.body}</div>}
             </section>
