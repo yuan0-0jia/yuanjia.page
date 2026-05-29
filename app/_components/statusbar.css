@@ -41,14 +41,21 @@
 .statusbar-seg {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 7px;
   white-space: nowrap;
+  /* Reserve width for the widest greeting ("welcome, friend") and center the
+     contents, so the center-anchored bar never resizes and the label stays
+     centered when auth resolves (text swap + live dot). Monospace font → `ch`
+     maps to exact glyph width; the extra absorbs letter-spacing. */
+  min-width: 16ch;
 }
 /* Live-session indicator: a softly pulsing green dot, rendered only while an
    authenticated session is active. */
 .statusbar-dot {
   width: 7px;
   height: 7px;
+  flex-shrink: 0;
   border-radius: 50%;
   background: #2ec27e;
   animation: statusbar-pulse 2.6s ease-in-out infinite;

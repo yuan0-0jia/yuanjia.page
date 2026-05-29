@@ -20,7 +20,9 @@ export function StatusBar() {
     <aside className="statusbar" aria-label="Status">
       <span className="statusbar-seg">
         {isAuthenticated && <span className="statusbar-dot" aria-hidden="true" />}
-        {isAuthenticated ? "yuan@page" : "welcome, friend"}
+        <span className="statusbar-label">
+          {isAuthenticated ? "yuan@page" : "welcome, friend"}
+        </span>
       </span>
 
       {minimized && (
