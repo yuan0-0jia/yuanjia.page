@@ -29,7 +29,9 @@ const NanoEditor = dynamic(() => import("./NanoEditor"), {
 });
 const AvatarUpload = dynamic(() => import("./AvatarUpload"), {
   ssr: false,
-  loading: () => null,
+  // Reserve the avatar box while the chunk loads so the whoami text doesn't
+  // shift sideways when AvatarUpload mounts (CLS in the authenticated view).
+  loading: () => <div className="yjt-whoami-avatar" aria-hidden />,
 });
 
 // Public but interaction-gated — only mounts when the user runs `less`.
