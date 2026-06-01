@@ -46,11 +46,11 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://yuanjia.page"),
   title: { template: "%s - Yuan Jia", default: "Yuan Jia" },
   description:
-    "Personal site of Yuan Jia — software engineer, photographer, and creative based in Santa Cruz.",
+    "Personal site of Yuan Jia — software engineer and photographer based in Santa Clara.",
   openGraph: {
     title: "Yuan Jia",
     description:
-      "Personal site of Yuan Jia — software engineer, photographer, and creative based in Santa Cruz.",
+      "Personal site of Yuan Jia — software engineer and photographer based in Santa Clara.",
     url: "https://yuanjia.page",
     siteName: "Yuan Jia",
     locale: "en_US",

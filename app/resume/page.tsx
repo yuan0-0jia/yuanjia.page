@@ -13,12 +13,12 @@ export const revalidate = 3600;
 export const metadata: Metadata = {
   title: "Resume",
   description:
-    "Resume of Yuan Jia — platform / infrastructure engineer. Print-friendly; Letter-sized PDF export via the browser print dialog.",
+    "Resume of Yuan Jia — software engineer building with AI coding agents. Print-friendly; Letter-sized PDF export via the browser print dialog.",
   alternates: { canonical: "/resume" },
   openGraph: {
     title: "Resume — Yuan Jia",
     description:
-      "Platform / infrastructure engineer. Production deploy pipelines, security hardening, self-hosted CI on k3s.",
+      "Software engineer building with AI coding agents — production deploy pipelines, security hardening, self-hosted CI on k3s.",
     url: "https://yuanjia.page/resume",
     type: "profile",
   },
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Resume — Yuan Jia",
     description:
-      "Platform / infrastructure engineer. Production deploy pipelines, security hardening, self-hosted CI on k3s.",
+      "Software engineer building with AI coding agents — production deploy pipelines, security hardening, self-hosted CI on k3s.",
   },
 };
 

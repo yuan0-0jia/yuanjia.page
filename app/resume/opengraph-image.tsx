@@ -28,7 +28,7 @@ export default async function Image() {
           position: "relative",
         }}
       >
-        {/* Decorative border (matches /about treatment) */}
+        {/* Decorative border (matches the home OG card) */}
         <div
           style={{
             position: "absolute",
