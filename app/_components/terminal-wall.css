@@ -588,6 +588,36 @@ html.matrix .yjt-root {
   grid-template-columns: repeat(var(--yjt-cols, 5), minmax(0, 1fr));
   gap: 12px;
 }
+/* The grid is always mounted (so its real <img>s download during the loading
+   gate), wrapped in .yjt-grid-reveal. While loading, .is-loading clips it to
+   zero height and hides it, so only the spinner occupies space — no empty gap.
+   On reveal the clip is removed (the grid takes its full height, pushing the
+   content below it down) and .yjt-grid-fadein eases it in. Restored/static
+   grids get neither class and render in place. */
+.yjt-grid-reveal.is-loading {
+  height: 0;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+.yjt-grid-fadein { animation: yjt-grid-fade-in 0.35s ease-out both; }
+@keyframes yjt-grid-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.yjt-grid-loading {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--t-dim);
+}
+.yjt-grid-spinner {
+  display: inline-block;
+  width: 1ch;
+  color: var(--t-prompt);
+}
 
 .yjt-cell {
   background: transparent;
@@ -943,6 +973,9 @@ html.matrix .yjt-root {
 .yjt-root[data-static] .yjt-block-live .yjt-body-wrap {
   animation: yjt-body-in 0.35s ease-out both;
 }
+/* The photo grid's live-vs-restored split is handled in JS via the `animateIn`
+   prop (restored grids render in place with no fade), so no data-static grid
+   rule is needed here. */
 
 /* ── Reduced motion ──────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {

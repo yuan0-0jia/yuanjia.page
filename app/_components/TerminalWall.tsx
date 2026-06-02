@@ -461,14 +461,41 @@ function BodyLinks() {
   );
 }
 
+// srcset/sizes for the grid thumbnails — kept as shared constants so the
+// preloader in BodyPhotos resolves to the SAME candidate URL the grid <img>
+// requests, warming the exact cache entry the cell reads (no fetch on paint).
+//   ≤600px → mostly 2 cols (50vw) but as wide as 100vw with cols=1
+//   601-768px → ~3 cols (33vw)
+//   ≥769px → bounded by max-w-4xl ÷ cols (max ~250px per cell)
+const GRID_IMG_SIZES = "(max-width: 600px) 50vw, (max-width: 768px) 33vw, 250px";
+const gridSrcSet = (p: FlickrPhoto) => `${p.srcSmall} 320w, ${p.srcMedium} 800w`;
+
+// Braille spinner frames for the grid's loading indicator — a CLI-style
+// "working" glyph in keeping with the terminal aesthetic. Cycled in JS (robust
+// everywhere; animating CSS `content` isn't reliable cross-browser).
+const SPINNER_FRAMES = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏";
+// Hold the loading indicator back this long: a fast (warm-cache) fetch finishes
+// first and never flashes the spinner — it only surfaces once a fetch is
+// genuinely slow. Flashing it on a quick load reads as a glitch.
+const SPINNER_DELAY_MS = 500;
+
 function PhotoCell({
   photo,
   idx,
   onOpen,
+  eager,
+  onSettle,
 }: {
   photo: FlickrPhoto;
   idx: number;
   onOpen: (index: number) => void;
+  // Load the thumbnail eagerly so it downloads even while the grid is still
+  // clipped/hidden during the loading gate (lazy images off-screen wouldn't).
+  eager?: boolean;
+  // Called once this cell's image is downloaded AND decoded (or has errored),
+  // so BodyPhotos can reveal the grid only when every cell can paint in one
+  // shot. Omitted for restored/static grids, which render without gating.
+  onSettle?: (id: string) => void;
 }) {
   const name = photoName(photo.title);
   // Preload the full-size image when the user signals intent (hover on
@@ -478,6 +505,35 @@ function PhotoCell({
     const img = new window.Image();
     img.src = photo.src;
   };
+  // Callback ref that settles this cell once its <img> is decoded. Gating on the
+  // REAL grid element (not a detached preload) guarantees the exact resource the
+  // browser selected from srcset/sizes is the one we wait for — no candidate
+  // mismatch, so the cell never re-fetches and streams in line-by-line on
+  // reveal. We force decode() so a downloaded-but-undecoded baseline JPEG is
+  // rasterized while hidden, then paints atomically when shown.
+  const imgRef = useCallback(
+    (node: HTMLImageElement | null) => {
+      if (!node || !onSettle) return;
+      const done = () => onSettle(photo.id);
+      const decodeThenDone = () => {
+        if (typeof node.decode === "function") {
+          node.decode().then(done, done);
+        } else {
+          done();
+        }
+      };
+      if (node.complete && node.naturalWidth > 0) {
+        decodeThenDone();
+      } else if (node.complete) {
+        // Completed but with no dimensions ⇒ errored; settle so we don't stall.
+        done();
+      } else {
+        node.addEventListener("load", decodeThenDone, { once: true });
+        node.addEventListener("error", done, { once: true });
+      }
+    },
+    [onSettle, photo.id]
+  );
   return (
     <button
       className="yjt-cell"
@@ -489,17 +545,15 @@ function PhotoCell({
     >
       <div className="yjt-cell-img">
         <img
+          ref={imgRef}
           src={photo.srcSmall}
-          srcSet={`${photo.srcSmall} 320w, ${photo.srcMedium} 800w`}
-          // Conservative sizes that cover the active layouts:
-          //   ≤600px → mostly 2 cols (50vw) but as wide as 100vw with cols=1
-          //   601-768px → ~3 cols (33vw)
-          //   ≥769px → bounded by max-w-4xl ÷ cols (max ~250px per cell)
-          sizes="(max-width: 600px) 50vw, (max-width: 768px) 33vw, 250px"
+          srcSet={gridSrcSet(photo)}
+          sizes={GRID_IMG_SIZES}
           alt={name}
           width={photo.width}
           height={photo.height}
-          loading="lazy"
+          loading={eager ? "eager" : "lazy"}
+          decoding="async"
           draggable={false}
           onError={(e) => {
             e.currentTarget.style.display = "none";
@@ -523,16 +577,110 @@ function BodyPhotos({
   albumTotal,
   cols,
   onOpen,
+  animateIn,
 }: {
   photos: FlickrPhoto[];
   albumTotal: number;
   cols: number;
   onOpen: (index: number) => void;
+  // Whether this grid should animate in (live `flickr fetch` or the fresh
+  // typing reveal) vs. appear instantly (restored/static output). When false we
+  // skip the whole preload-gate and render the grid immediately — restored
+  // content must never collapse-then-shift.
+  animateIn: boolean;
 }) {
+  // Hold the grid back until every photo in this subset is downloaded AND
+  // decoded, so it appears fully painted rather than streaming blank/partial
+  // cells in over the network. While loading the grid IS mounted (so its real
+  // <img> elements download and we wait on the exact resources they request),
+  // but it's clipped to zero height and hidden — only the indicator takes space,
+  // so there's no big empty gap. Once every cell settles, we reveal: the grid
+  // expands to full height (pushing the content below it down) and fades in.
+  // Restored/static grids (animateIn=false) skip the gate and render in place.
+  const [ready, setReady] = useState(!animateIn);
+  // How many cells have settled (decoded or errored). Drives the live
+  // "fetching N/total" counter so a slow network reads as progress.
+  const [loadedCount, setLoadedCount] = useState(0);
+
+  // Track which cells have settled (by photo id) so reveal waits for all of
+  // them. A ref dedupes per cell; state drives the counter + reveal.
+  const settledIdsRef = useRef<Set<string>>(new Set());
+
+  // Reset the settle tracking when the subset (or animate mode) changes. This
+  // MUST happen during render, not in an effect: cell callback refs fire during
+  // commit — and on a fast/warm load the images are already decoded, so they
+  // settle immediately — which would then be wiped by a post-commit effect,
+  // stranding the counter at 0. The render-phase reset (guarded so it runs only
+  // when the key actually changes) puts the fresh state in place BEFORE the refs
+  // fire. Calling setState during render is the supported "derive state on prop
+  // change" pattern; React re-renders synchronously without an extra commit.
+  const resetKeyRef = useRef<{ photos: FlickrPhoto[]; animateIn: boolean } | null>(null);
+  if (
+    resetKeyRef.current?.photos !== photos ||
+    resetKeyRef.current?.animateIn !== animateIn
+  ) {
+    resetKeyRef.current = { photos, animateIn };
+    settledIdsRef.current = new Set();
+    setLoadedCount(0);
+    setReady(!animateIn);
+  }
+
+  const handleSettle = useCallback(
+    (id: string) => {
+      if (settledIdsRef.current.has(id)) return;
+      settledIdsRef.current.add(id);
+      const n = settledIdsRef.current.size;
+      setLoadedCount(n);
+      if (n >= photos.length) setReady(true);
+    },
+    [photos.length]
+  );
+
+  // If a grid switches to non-animating after mount (e.g. reduced-motion
+  // engages), reveal it immediately rather than leave it behind the gate.
+  useEffect(() => {
+    if (!animateIn) setReady(true);
+  }, [animateIn]);
+
+  // Last-resort safety net so a single permanently-stalled image can't strand
+  // the grid forever. Generous enough that a genuinely slow (but progressing)
+  // load is never cut off mid-flight — the live counter carries that case, and
+  // this only trips on a true stall.
+  useEffect(() => {
+    if (!animateIn || ready || photos.length === 0) return;
+    const timer = window.setTimeout(() => setReady(true), 60000);
+    return () => window.clearTimeout(timer);
+  }, [animateIn, ready, photos.length]);
+
+  // Only surface the indicator if the fetch is still pending after a beat, so
+  // fast loads never flash it. Once shown it stays until `ready`, then it
+  // cross-fades out as the grid fades in.
+  const [showSpinner, setShowSpinner] = useState(false);
+  useEffect(() => {
+    if (!animateIn || ready || photos.length === 0) return;
+    const id = window.setTimeout(() => setShowSpinner(true), SPINNER_DELAY_MS);
+    return () => window.clearTimeout(id);
+  }, [animateIn, ready, photos.length]);
+
+  // Cycle the spinner glyph only while it's actually visible. JS-driven so it
+  // works everywhere; skipped under reduced motion (the glyph just stays put).
+  const [spinFrame, setSpinFrame] = useState(0);
+  useEffect(() => {
+    if (!showSpinner || ready) return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    const id = window.setInterval(
+      () => setSpinFrame((f) => (f + 1) % SPINNER_FRAMES.length),
+      90
+    );
+    return () => window.clearInterval(id);
+  }, [showSpinner, ready]);
+
   return (
     <div className="yjt-body">
       <div className="yjt-photos-meta">
-        {photos.length > 0 ? (
+        {photos.length === 0 ? (
+          <span className="yjt-dim">loading…</span>
+        ) : (
           <>
             <span className="yjt-dim">
               random {photos.length} of {albumTotal}
@@ -547,17 +695,46 @@ function BodyPhotos({
               &quot;{ALBUM_NAME}&quot; on flickr <span className="yjt-faint">↗</span>
             </a>
           </>
-        ) : (
-          <span className="yjt-dim">loading…</span>
         )}
       </div>
+      {/* The spinner shows in-flow while loading (after a short delay so fast
+          loads never flash it); once ready it unmounts. */}
+      {animateIn && !ready && showSpinner && (
+        <div className="yjt-grid-loading" aria-hidden="true">
+          <span className="yjt-grid-spinner">{SPINNER_FRAMES[spinFrame]}</span>
+          fetching photos {loadedCount}/{photos.length}
+        </div>
+      )}
+      {/* The grid is ALWAYS mounted so its real <img> elements download during
+          the loading gate (and we wait on the exact resources they request — no
+          candidate mismatch, no re-fetch/line-by-line on reveal). While loading
+          it's clipped to zero height + hidden (is-loading), so only the spinner
+          takes space — no empty gap. On reveal it expands to full height
+          (pushing the content below it down) and fades in. Restored/static grids
+          (animateIn=false) skip the gate and render in place with no fade. */}
       <div
-        className="yjt-grid"
-        style={{ ["--yjt-cols" as string]: cols }}
+        className={
+          "yjt-grid-reveal" +
+          (animateIn && !ready ? " is-loading" : "") +
+          (animateIn && ready ? " yjt-grid-fadein" : "")
+        }
       >
-        {photos.map((p, i) => (
-          <PhotoCell key={p.id} photo={p} idx={i} onOpen={onOpen} />
-        ))}
+        <div
+          className="yjt-grid"
+          style={{ ["--yjt-cols" as string]: cols }}
+          aria-busy={animateIn && !ready ? true : undefined}
+        >
+          {photos.map((p, i) => (
+            <PhotoCell
+              key={p.id}
+              photo={p}
+              idx={i}
+              onOpen={onOpen}
+              eager={animateIn}
+              onSettle={animateIn ? handleSettle : undefined}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -847,6 +1024,7 @@ function runCommand(input: string, ctx: CmdCtx): CmdResult {
             albumTotal={ctx.albumTotal}
             cols={ctx.cols}
             onOpen={(i) => ctx.openPhoto(subset, i)}
+            animateIn={!ctx.replay}
           />
         ),
       };
@@ -1684,6 +1862,7 @@ export default function TerminalWall({ photos, albumTotal, bio, avatar, resumeMd
             albumTotal={albumTotal}
             cols={cols}
             onOpen={(idx) => setLightbox({ photos: displayPhotos, index: idx })}
+            animateIn={animate}
           />
         );
       default:
