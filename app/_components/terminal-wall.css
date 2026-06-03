@@ -335,6 +335,10 @@ html.matrix .yjt-root {
   align-items: center;
   gap: 18px;
 }
+/* Hold the card hidden until the avatar is decoded (layout stays reserved, so
+   no shift), then ease the portrait + key-values in together. */
+.yjt-whoami.is-loading { visibility: hidden; }
+.yjt-whoami-ready { animation: yjt-grid-fade-in 0.3s ease-out both; }
 .yjt-whoami-avatar {
   position: relative;
   width: 96px;

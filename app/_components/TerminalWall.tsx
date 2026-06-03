@@ -379,15 +379,50 @@ function BodyWhoami({
   whoami: WhoamiField[];
 }) {
   const name = whoami.find((f) => f.key === "name")?.value;
+  // Hold the whole card hidden (layout reserved, so no shift) until the portrait
+  // bitmap is downloaded AND decoded, so the avatar and the key-values paint in
+  // one shot instead of the text appearing first and the photo popping in late.
+  // No avatar ⇒ nothing to wait for; the owner view uses the editable
+  // AvatarUpload (its own placeholder) so it skips the gate.
+  const gated = !!avatar && !isAuthenticated;
+  const [ready, setReady] = useState(!gated);
+  const avatarRef = useCallback(
+    (node: HTMLImageElement | null) => {
+      if (!node) return;
+      const done = () => setReady(true);
+      const decodeThenDone = () => {
+        if (typeof node.decode === "function") {
+          node.decode().then(done, done);
+        } else {
+          done();
+        }
+      };
+      if (node.complete && node.naturalWidth > 0) {
+        decodeThenDone();
+      } else if (node.complete) {
+        done();
+      } else {
+        node.addEventListener("load", decodeThenDone, { once: true });
+        node.addEventListener("error", done, { once: true });
+      }
+    },
+    []
+  );
   return (
-    <div className="yjt-body yjt-whoami">
+    <div
+      className={
+        "yjt-body yjt-whoami" +
+        (gated ? (ready ? " yjt-whoami-ready" : " is-loading") : "")
+      }
+      aria-busy={gated && !ready ? true : undefined}
+    >
       {avatar &&
         // neofetch-style: portrait beside the "system info" key-values.
         (isAuthenticated ? (
           <AvatarUpload src={avatar} />
         ) : (
           <div className="yjt-whoami-avatar">
-            <Image src={avatar} alt={name ?? "avatar"} width={96} height={96} draggable={false} priority />
+            <Image ref={avatarRef} src={avatar} alt={name ?? "avatar"} width={96} height={96} draggable={false} priority />
           </div>
         ))}
       {/* Rows come straight from `nano whoami` (site.whoami) in file order — any
