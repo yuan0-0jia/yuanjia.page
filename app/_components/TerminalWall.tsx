@@ -1066,7 +1066,6 @@ function runCommand(input: string, ctx: CmdCtx): CmdResult {
     }
 
     case "resume":
-    case "cv":
       if (!ctx.replay) ctx.openResumePage();
       return { body: <BodyNote>→ /resume</BodyNote> };
 
@@ -1091,12 +1090,10 @@ function runCommand(input: string, ctx: CmdCtx): CmdResult {
       };
 
     case "email":
-    case "mail":
       if (!ctx.replay) ctx.composeEmail();
       return { body: <BodyNote>→ hello.yuanjia@gmail.com</BodyNote> };
 
     case "login":
-    case "signin":
       if (ctx.isAuthenticated) {
         return {
           body: (
@@ -1110,15 +1107,13 @@ function runCommand(input: string, ctx: CmdCtx): CmdResult {
       return { body: <BodyNote>→ redirecting to google sign-in…</BodyNote> };
 
     case "logout":
-    case "signout":
       if (!ctx.isAuthenticated) {
         return { body: <BodyNote>not logged in</BodyNote> };
       }
       if (!ctx.replay) ctx.doLogout();
       return { body: <BodyNote>signing out…</BodyNote> };
 
-    case "nano":
-    case "edit": {
+    case "nano": {
       if (!ctx.isAuthenticated) {
         return {
           body: (
@@ -1132,15 +1127,15 @@ function runCommand(input: string, ctx: CmdCtx): CmdResult {
       if (!file) {
         return { body: <BodyNote tone="prompt-c">usage: nano about.md | resume.md | whoami.md</BodyNote> };
       }
-      if (["about", "about.md", "~/about.md", "bio"].includes(file)) {
+      if (file === "about.md") {
         if (!ctx.replay) ctx.openBioEditor();
         return { body: <BodyNote>GNU nano — editing ~/about.md…</BodyNote> };
       }
-      if (["resume", "cv", "resume.md", "~/resume.md", "~/resume"].includes(file)) {
+      if (file === "resume.md") {
         if (!ctx.replay) ctx.openResumeEditor();
         return { body: <BodyNote>GNU nano — editing ~/resume.md…</BodyNote> };
       }
-      if (["whoami", "whoami.md", "~/whoami.md", "profile"].includes(file)) {
+      if (file === "whoami.md") {
         if (!ctx.replay) ctx.openWhoamiEditor();
         return { body: <BodyNote>GNU nano — editing ~/whoami.md…</BodyNote> };
       }
@@ -1179,17 +1174,14 @@ function runCommand(input: string, ctx: CmdCtx): CmdResult {
     }
 
     case "clear":
-    case "cls":
       if (!ctx.replay) ctx.clear();
       return { sideEffectOnly: true };
 
     case "restart":
-    case "reboot":
       if (!ctx.replay) ctx.restart();
       return { sideEffectOnly: true };
 
     case "exit":
-    case "quit":
       if (!ctx.replay) ctx.exit();
       return { sideEffectOnly: true };
 
