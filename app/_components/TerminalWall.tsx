@@ -176,14 +176,14 @@ const COMMANDS = [
   { name: "clear", desc: "clear screen" },
 ];
 
-// Tab-completion vocabulary: public commands only (owner commands and aliases
-// still work when typed, they're just not suggested), plus the argument options
+// Tab-completion vocabulary: the commonly used commands (the owner-only `nano`
+// still works when typed, it's just not suggested), plus the argument options
 // for the commands that take one.
 const COMPLETIONS = [
   "options", "whoami", "ls", "flickr", "resume",
   "github", "linkedin", "email", "theme", "cols", "clear",
   "restart", "exit",
-  "pwd", "cd", "cat", "less", "which", "man", "history", "last", "uptime",
+  "pwd", "cd", "cat", "less", "which", "man", "history", "last", "uptime", "coffee",
 ];
 const ARG_OPTIONS: Record<string, string[]> = {
   theme: ["light", "dark", "matrix"],
@@ -195,6 +195,7 @@ const ARG_OPTIONS: Record<string, string[]> = {
   man: ["yuan"],
   which: ["yuan"],
   flickr: ["fetch"],
+  coffee: ["v60", "chemex", "aeropress", "switch", "kasuya", "1cup"],
 };
 // Returns the valid cols values for the current viewport.
 const colsOptions = () =>
@@ -851,7 +852,84 @@ function BodyManYuan() {
       <span className="yjt-blue">flickr</span>
       {"(1), "}
       <span className="yjt-blue">resume</span>
+      {"(1), "}
+      <span className="yjt-yellow">coffee</span>
       {"(1)"}
+    </BodyPre>
+  );
+}
+
+// Coffee-snob easter egg: every `coffee` rolls a random Moonwake single-origin
+// paired with a named, real-world brew recipe. `coffee <method>` narrows the
+// brewer (v60 / 1cup / kasuya / aeropress / switch / chemex).
+//   Beans     — current Moonwake Coffee Roasters lots + their published notes.
+//   V60       — James Hoffmann, "Ultimate V60" (30g:500g, 95°C)
+//   1cup      — James Hoffmann, "Better 1 Cup V60" (15g:250g, 95°C)
+//   4:6       — Tetsu Kasuya, WBrC 2016 4:6 Method (20g:300g)
+//   AeroPress — James Hoffmann, "Ultimate AeroPress" (11g:200g, 92°C)
+//   Switch    — Moonwake Coffee Roasters house guide, Hario Switch (15g:225g, 93°C)
+//   Chemex    — Chemex official guide (42g:700g, 1:16.7)
+const COFFEE_ORIGINS = [
+  { origin: "Karindundu, Nyeri — Kenya",          process: "washed",             notes: "lime zest, red currant, pomelo, thyme" },
+  { origin: "Granja Paraiso 92, Cauca — Colombia", process: "lager gesha",       notes: "peach gummy, jasmine, red tea" },
+  { origin: "Hacienda La Esmeralda — Panama",     process: "washed gesha",       notes: "tangerine, jasmine, white peach, mangosteen" },
+  { origin: "Tamiru Tadesse, Guji — Ethiopia",    process: "DRD natural",        notes: "raspberry, white peach, jasmine tea, citron" },
+  { origin: "Finca El Rincón, Huila — Colombia",  process: "anaerobic natural",  notes: "black forest cake, cherry cordial, guinness" },
+  { origin: "Banko Taratu, Yirgacheffe — Ethiopia", process: "washed landrace",  notes: "orange, mango, pluot, black tea" },
+  { origin: "Fugi Kiyonza Hill — Rwanda",         process: "washed red bourbon", notes: "d'anjou pear, sage, honey, lime" },
+  { origin: "Bernard Uhe, Loja — Ecuador",        process: "natural wush wush",  notes: "pineapple, black cherry, jasmine tea" },
+];
+const COFFEE_METHODS = [
+  { method: "Hario V60",   recipe: "James Hoffmann · Ultimate V60", keys: ["v60", "hario", "ultimate", "hoffmann", "pourover"], dose: "30g", water: "500g", ratio: "1:16.7", grind: "medium-fine",   temp: "95°C", stepLabel: "bloom", step: "60g · 0:45",     total: "3:30–4:00" },
+  { method: "Hario V60",   recipe: "James Hoffmann · Better 1 Cup", keys: ["v60", "hario", "1cup", "onecup", "single", "hoffmann"], dose: "15g", water: "250g", ratio: "1:16.7", grind: "medium-fine",   temp: "95°C", stepLabel: "bloom", step: "50g · 0:45",     total: "2:30–3:00" },
+  { method: "Hario V60",   recipe: "Tetsu Kasuya · 4:6 Method",     keys: ["v60", "hario", "kasuya", "46", "4:6"],               dose: "20g", water: "300g", ratio: "1:15",   grind: "medium-coarse", temp: "93°C", stepLabel: "pours", step: "5 × 60g @ 0:45", total: "~3:30" },
+  { method: "AeroPress",   recipe: "James Hoffmann · Ultimate",     keys: ["aeropress", "press", "hoffmann"],                    dose: "11g", water: "200g", ratio: "1:18",   grind: "medium",        temp: "92°C", stepLabel: "steep", step: "2:00, 1 stir",  total: "~2:30" },
+  { method: "Hario Switch", recipe: "Moonwake · 3-Pour",            keys: ["switch", "hario", "moonwake"],                       dose: "15g", water: "225g", ratio: "1:15",   grind: "medium",        temp: "93°C", stepLabel: "steep", step: "1:30, closed",  total: "~4:00" },
+  { method: "Chemex",      recipe: "Chemex · official guide",       keys: ["chemex"],                                            dose: "42g", water: "700g", ratio: "1:16.7", grind: "medium-coarse", temp: "94°C", stepLabel: "bloom", step: "84g · 0:45",     total: "4:00–5:00" },
+];
+const pick = <T,>(arr: readonly T[]): T => arr[Math.floor(Math.random() * arr.length)];
+
+function BodyCoffee({ methodKey }: { methodKey?: string }) {
+  // Roll once per mount (fresh on each invocation, stable across re-renders).
+  // A method keyword (e.g. `coffee chemex`) narrows the pool; origin is always
+  // a random single-origin.
+  const { brew, method } = useMemo(() => {
+    const matches = methodKey
+      ? COFFEE_METHODS.filter((m) => m.keys.includes(methodKey))
+      : COFFEE_METHODS;
+    return {
+      brew: pick(COFFEE_ORIGINS),
+      method: pick(matches.length ? matches : COFFEE_METHODS),
+    };
+  }, [methodKey]);
+  const div = "──────────────────────────────────────";
+  const row = (k: string, v: string) => `  ${k.padEnd(8)}${v}\n`;
+  return (
+    <BodyPre>
+      <span className="yjt-dim">Moonwake Coffee Roasters · specialty</span>
+      {"\n"}
+      {div}
+      {"\n"}
+      <span className="yjt-green">{brew.origin}</span>
+      {"\n"}
+      <span className="yjt-blue">{method.method}</span>
+      {"  ·  "}
+      <span className="yjt-dim">{method.recipe}</span>
+      {"\n"}
+      {div}
+      {"\n"}
+      {row("process", brew.process)}
+      {row("dose", method.dose)}
+      {row("water", `${method.water} (${method.ratio})`)}
+      {row("grind", method.grind)}
+      {row("temp", `${method.temp}, off the boil`)}
+      {row(method.stepLabel, method.step)}
+      {row("time", method.total)}
+      {"  notes   "}
+      <span className="yjt-yellow">{brew.notes}</span>
+      {"\n"}
+      {div}
+      {"\n"}
     </BodyPre>
   );
 }
@@ -1318,6 +1396,24 @@ function runCommand(input: string, ctx: CmdCtx): CmdResult {
       };
     }
 
+    case "coffee": {
+      const sub = (args[0] || "").toLowerCase();
+      // Wrong appliance — HTCPCP, RFC 2324.
+      if (sub === "tea") {
+        return { body: <BodyNote tone="prompt-c">418 I&apos;m a teapot — wrong appliance. (RFC 2324)</BodyNote> };
+      }
+      // A coffee snob does not negotiate on these.
+      if (["instant", "keurig", "nescafe", "folgers"].includes(sub)) {
+        return { body: <BodyNote tone="prompt-c">{sub}: not in this kitchen. we grind fresh.</BodyNote> };
+      }
+      // Good decaf exists — backhanded acceptance.
+      if (sub === "decaf") {
+        return { body: <BodyNote>decaf? …fine. Moonwake&apos;s Granja Paraiso 92 decaf earns its place. no judgment. (mostly.)</BodyNote> };
+      }
+      // Bare `coffee` brews random; `coffee <method>` narrows to that brewer.
+      return { body: <BodyCoffee methodKey={sub || undefined} /> };
+    }
+
     default:
       return {
         body: (
@@ -1483,7 +1579,7 @@ export default function TerminalWall({ photos, albumTotal, bio, avatar, resumeMd
   const [hideInitial, setHideInitial] = useState(false);
   const [inputValue, setInputValue] = useState("");
   const [history, setHistory] = useState<string[]>([]);
-  const [histIdx, setHistIdx] = useState(-1);
+  const [, setHistIdx] = useState(-1);
   const [runId, setRunId] = useState(0);
   const sessionIdRef = useRef(0);
   // Terminal "login" timestamp. Starts at the page-navigation time; reset on
