@@ -9,6 +9,7 @@ import {
   useMemo,
   type ReactNode,
 } from "react";
+import { preload } from "react-dom";
 import Image from "next/image";
 import Link from "next/link";
 import dynamic from "next/dynamic";
@@ -520,6 +521,7 @@ function PhotoCell({
   idx,
   onOpen,
   eager,
+  priority,
   onSettle,
 }: {
   photo: FlickrPhoto;
@@ -528,6 +530,9 @@ function PhotoCell({
   // Load the thumbnail eagerly so it downloads even while the grid is still
   // clipped/hidden during the loading gate (lazy images off-screen wouldn't).
   eager?: boolean;
+  // First-row cells are the LCP candidates: fetch them at high priority so they
+  // win network contention over the lower rows that mount at the same instant.
+  priority?: boolean;
   // Called once this cell's image is downloaded AND decoded (or has errored),
   // so BodyPhotos can reveal the grid only when every cell can paint in one
   // shot. Omitted for restored/static grids, which render without gating.
@@ -589,6 +594,7 @@ function PhotoCell({
           width={photo.width}
           height={photo.height}
           loading={eager ? "eager" : "lazy"}
+          fetchPriority={priority ? "high" : undefined}
           decoding="async"
           draggable={false}
           onError={(e) => {
@@ -661,15 +667,23 @@ function BodyPhotos({
     setReady(!animateIn);
   }
 
+  // Reveal as soon as the first (visible) row's images are all decoded — the
+  // LCP row — instead of holding the whole grid back until every photo settles.
+  // Lower rows stream into their already-reserved aspect-ratio boxes below, so
+  // revealing early costs no layout shift but paints the largest content far
+  // sooner (the old all-or-nothing gate could wait seconds on a slow network).
+  const revealCount = Math.min(cols, photos.length);
   const handleSettle = useCallback(
     (id: string) => {
       if (settledIdsRef.current.has(id)) return;
       settledIdsRef.current.add(id);
-      const n = settledIdsRef.current.size;
-      setLoadedCount(n);
-      if (n >= photos.length) setReady(true);
+      const settled = settledIdsRef.current;
+      setLoadedCount(settled.size);
+      if (photos.slice(0, revealCount).every((p) => settled.has(p.id))) {
+        setReady(true);
+      }
     },
-    [photos.length]
+    [photos, revealCount]
   );
 
   // If a grid switches to non-animating after mount (e.g. reduced-motion
@@ -767,6 +781,7 @@ function BodyPhotos({
               idx={i}
               onOpen={onOpen}
               eager={animateIn}
+              priority={animateIn && i < cols}
               onSettle={animateIn ? handleSettle : undefined}
             />
           ))}
@@ -1541,6 +1556,24 @@ export default function TerminalWall({ photos, albumTotal, bio, avatar, resumeMd
         : "light";
 
   const [cols, setCols] = useState(isMobile ? 2 : 5);
+
+  // Warm the first grid row's thumbnails the moment we hydrate, matching the
+  // per-visit client shuffle. The grid's real <img>s don't mount (and so can't
+  // start downloading) until the intro types its way to the `flickr fetch`
+  // block over a second in — so without this the LCP row can't begin loading
+  // until then. Same srcset/sizes as the cells → warms the exact candidate the
+  // cell requests, so it paints straight from cache when the grid reveals.
+  useEffect(() => {
+    if (displayPhotos.length === 0) return;
+    for (const p of displayPhotos.slice(0, cols)) {
+      preload(p.srcSmall, {
+        as: "image",
+        imageSrcSet: gridSrcSet(p),
+        imageSizes: GRID_IMG_SIZES,
+        fetchPriority: "high",
+      });
+    }
+  }, [displayPhotos, cols]);
 
   // Window chrome state (mac traffic-light behaviour). Maximized (widened) and
   // minimized are independent, so a maximized window stays widened after it's
